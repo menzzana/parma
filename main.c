@@ -35,8 +35,10 @@ int main(int argc, char **argv) {
 				break;
 			case 'p':
 				// permutations=optarg
+				break;
 			case 'm':
 				// number of markers=optarg
+				break;
 			default:
 				exit(EXIT_FAILURE);
 			}
