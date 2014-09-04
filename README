@@ -23,7 +23,9 @@ cmake => 2.8
 MPI library
 
 In order to build just run...
-cmake CMakeLists.txt
+mkdir [BUILD DIR]
+cd [BUILD DIR]
+cmake ..
 make
 
 A bin directory will be created with the executable
