@@ -19,9 +19,14 @@ BUILDING (from source bundle)
 
 DEPENDENCIES
 C++ compiler
+cmake => 2.8
+MPI library
 
 In order to build just run...
+cmake CMakeLists.txt
 make
+
+A bin directory will be created with the executable
 
 ***
 
