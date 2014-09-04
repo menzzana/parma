@@ -21,13 +21,13 @@ see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>     
-#include <mpi.h>
-
-const char VERSION[]="Parma v0.1.1";
+#include "mpi.h"
+#include "version_config.h"
 
 int main(int argc, char **argv) {
 	int optionvalue;
 	
+	printVersion();
 	while ((optionvalue=getopt(argc,argv,"f:p:m:"))!=-1)
 		switch (optionvalue) {
 			case 'f':
