@@ -42,5 +42,5 @@ int main(int argc, char **argv) {
 			default:
 				exit(EXIT_FAILURE);
 			}
-  exit(EXIT_SUCCESS);
-  }
+	exit(EXIT_SUCCESS);
+	}

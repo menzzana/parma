@@ -8,8 +8,8 @@
 #define VERSION_MINOR @PARMA_VERSION_MINOR@
 #define VERSION_PATCH @PARMA_VERSION_PATCH@
 //------------------------------------------------------------------------------
-void printVersion () {
-	printf("Parma V%d.%d.%d\n",VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH);
+void printVersion() {
+  printf("Parma V%d.%d.%d\n",VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH);
   }
 //------------------------------------------------------------------------------
 #endif // VERSION_CONFIG_H
