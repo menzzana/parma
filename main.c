@@ -1,4 +1,6 @@
-/* Parma
+/********************************************************************************
+
+Parma
 
 Authors: Henric Zazzi, Hannes Leskelä
 Copyright (C) PDC Center for High Performance Computing, KTH 2014  
@@ -14,7 +16,7 @@ GNU General Public License for more details.
 
 Copy of the GNU General Public License can be onbtained from
 see <http://www.gnu.org/licenses/>.
-*/
+*******************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,12 +25,13 @@ see <http://www.gnu.org/licenses/>.
 #include <unistd.h>     
 #include "mpi.h"
 #include "version_config.h"
-
+#include "global.h"
+//------------------------------------------------------------------------------
 int main(int argc, char **argv) {
 	int optionvalue;
 	
 	printVersion();
-	while ((optionvalue=getopt(argc,argv,"f:p:m:"))!=-1)
+	while ((optionvalue=getopt(argc,argv,"f:p:m:"))!=END_OF_OPTIONS)
 		switch (optionvalue) {
 			case 'f':
 				// filename=optarg;
@@ -44,3 +47,4 @@ int main(int argc, char **argv) {
 			}
 	exit(EXIT_SUCCESS);
 	}
+//------------------------------------------------------------------------------
