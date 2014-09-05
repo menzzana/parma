@@ -28,23 +28,23 @@ see <http://www.gnu.org/licenses/>.
 #include "global.h"
 //------------------------------------------------------------------------------
 int main(int argc, char **argv) {
-	int optionvalue;
-	
-	printVersion();
-	while ((optionvalue=getopt(argc,argv,"f:p:m:"))!=END_OF_OPTIONS)
-		switch (optionvalue) {
-			case 'f':
-				// filename=optarg;
-				break;
-			case 'p':
-				// permutations=optarg
-				break;
-			case 'm':
-				// number of markers=optarg
-				break;
-			default:
-				exit(EXIT_FAILURE);
-			}
-	exit(EXIT_SUCCESS);
-	}
+  int optionvalue;
+
+  printVersion();
+  while ((optionvalue=getopt(argc,argv,"f:p:m:"))!=END_OF_OPTIONS)
+    switch (optionvalue) {
+      case 'f':
+        // filename=optarg;
+        break;
+      case 'p':
+        // permutations=optarg
+        break;
+      case 'm':
+        // number of markers=optarg
+        break;
+      default:
+        exit(EXIT_FAILURE);
+      }
+  exit(EXIT_SUCCESS);
+  }
 //------------------------------------------------------------------------------
