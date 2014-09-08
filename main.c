@@ -26,12 +26,13 @@ see <http://www.gnu.org/licenses/>.
 #include "mpi.h"
 #include "version_config.h"
 #include "global.h"
+#include "mdr.h"
 //------------------------------------------------------------------------------
 int main(int argc, char **argv) {
   int optionvalue;
 
   printVersion();
-  while ((optionvalue=getopt(argc,argv,"f:p:m:"))!=END_OF_OPTIONS)
+  while ((optionvalue=getopt(argc,argv,"f:p:m:s:"))!=END_OF_OPTIONS)
     switch (optionvalue) {
       case 'f':
         // filename=optarg;
@@ -41,6 +42,9 @@ int main(int argc, char **argv) {
         break;
       case 'm':
         // number of markers=optarg
+        break;
+      case 's':
+        sran1(atol(optarg));
         break;
       default:
         exit(EXIT_FAILURE);
