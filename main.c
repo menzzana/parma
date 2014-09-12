@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
   int optionvalue;
 
   printVersion();
-  while ((optionvalue=getopt(argc,argv,"f:p:m:s:"))!=END_OF_OPTIONS)
+  while ((optionvalue=getopt(argc,argv,"f:p:m:s:t:"))!=END_OF_OPTIONS)
     switch (optionvalue) {
       case 'f':
         // filename=optarg;
@@ -46,7 +46,14 @@ int main(int argc, char **argv) {
       case 's':
         sran1(atol(optarg));
         break;
+      case 't':
+        // which phenotype
+        break;
+      case 'c':
+        // How many combinations
+        break;
       default:
+        fprintf(stderr,"Unknown option `-%c'.\n", optopt);
         exit(EXIT_FAILURE);
       }
   exit(EXIT_SUCCESS);

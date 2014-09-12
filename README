@@ -28,12 +28,20 @@ cd [BUILD DIR]
 cmake ..
 make
 
-A bin directory will be created with the executable
-
 ***
 
 FILES
 
 main.c
+mdr.c
+
+OPTIONS
+-s [value]		Set [value] as new seed for random calculations
+-p [value]		Set [value] as the number of permutations
+-f [file]			The [file] that should contain the genetic data
+-m [file]			The [file] containing the markers to be analyzed
+							If not included all markers will be analyzed
+-t [value]		Which pehnotype [value] should be treated as cases
 
 See parma -h for more information about [OPTIONS]
+
