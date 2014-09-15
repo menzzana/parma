@@ -19,9 +19,13 @@
 #define RNMX (1.0-EPS)
 #define MAX(x,y) (x>y?x:y)
 #define MIN(x,y) (x<y?x:y)
-typedef enum { false, true } bool;
 
 static const int N_MDR_PARTS=10;
+static const int MAX_MARKER_COMBINATIONS=100;
+
+typedef enum {
+  false, true
+  } bool;
 //------------------------------------------------------------------------------
 // Variables
 //------------------------------------------------------------------------------
@@ -32,11 +36,11 @@ static long rseed;
 void init();
 void sran1(long value);
 double ran1();
-void initialMask(unsigned char *mask, int nanalysedmarkers, int nmarkers);
-bool incMask(unsigned char *mask, int nmarkers);
-void andMask(char *oldmask,char *mask, int nmarkers);
-bool TestMask(char *oldmask,char *mask, int nmarkers);
-void randomshuffle(unsigned char *data, int length);
-void mdr(unsigned char **data, unsigned char *phenotype, int nindividuals, int nphenotype);
+void setInitialCombination(int *markercombo, int markerno, int nmarkers, int ncombo);
+bool increaseCombination(int *markercombo, int markerno, int nmarkers, int ncombo);
+void populateMDRParts(unsigned char *data, int length);
+void randomShuffle(unsigned char *data, int length);
+void mdr(unsigned char **gendata, unsigned char *phenotype, int *marker,
+         int nmarkers, int nindividuals, int nselectmarkers, int permutations);
 //------------------------------------------------------------------------------
 #endif // MDR_H

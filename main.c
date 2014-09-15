@@ -29,33 +29,40 @@ see <http://www.gnu.org/licenses/>.
 #include "mdr.h"
 //------------------------------------------------------------------------------
 int main(int argc, char **argv) {
-  int optionvalue;
+  int optionvalue, nindividuals, nmarkers, permutations, combinations;
+  unsigned char **gendata, **markername, *phenotype;
+  char filename[MAX_LENGTH_STRING],phenoname[MAX_LENGTH_STRING];
+  char filenamemarkers[MAX_LENGTH_STRING];
 
   printVersion();
   while ((optionvalue=getopt(argc,argv,"f:p:m:s:t:"))!=END_OF_OPTIONS)
     switch (optionvalue) {
       case 'f':
-        // filename=optarg;
+        strncpy(filename,optarg,MAX_LENGTH_STRING-1);
         break;
       case 'p':
-        // permutations=optarg
+        permutations=atoi(optarg);
         break;
       case 'm':
-        // number of markers=optarg
+        strncpy(filenamemarkers,optarg,MAX_LENGTH_STRING-1);
         break;
       case 's':
         sran1(atol(optarg));
         break;
       case 't':
-        // which phenotype
+        strncpy(phenoname,optarg,MAX_LENGTH_STRING-1);
         break;
       case 'c':
-        // How many combinations
+        combinations=atoi(optarg);
         break;
       default:
         fprintf(stderr,"Unknown option `-%c'.\n", optopt);
         exit(EXIT_FAILURE);
       }
+
+
+
+  free(phenotype);
   exit(EXIT_SUCCESS);
   }
 //------------------------------------------------------------------------------
