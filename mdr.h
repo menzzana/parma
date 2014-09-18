@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 //------------------------------------------------------------------------------
 // Constants
 //------------------------------------------------------------------------------
@@ -20,12 +21,25 @@
 #define MAX(x,y) (x>y?x:y)
 #define MIN(x,y) (x<y?x:y)
 
+#define MAX_MARKER_COMBINATIONS 100
 static const int N_MDR_PARTS=10;
-static const int MAX_MARKER_COMBINATIONS=100;
-
+static const int PHENOTYPE_COMBINATIONS=2;
+static const int ALLELE_COMBINATIONS=3;
+// LIST_ALLELE_MARKER_COMBINATIONS=MAX_MARKER_COMBINATIONS^ALLELE_COMBINATIONS
+static const int LIST_ALLELE_MARKER_COMBINATIONS=10E6;
+//------------------------------------------------------------------------------
+// Definitions
+//------------------------------------------------------------------------------
 typedef enum {
   false, true
   } bool;
+struct MDRData {
+  float tp,fp,tn,fn;
+  };
+struct MDRAccuracy {
+  int markercombo[MAX_MARKER_COMBINATIONS];
+  float train,test,pvaluetrain,pvaluetest;
+  };
 //------------------------------------------------------------------------------
 // Variables
 //------------------------------------------------------------------------------
@@ -36,10 +50,18 @@ static long rseed;
 void init();
 void sran1(long value);
 double ran1();
-void setInitialCombination(int *markercombo, int markerno, int nmarkers, int ncombo);
-bool increaseCombination(int *markercombo, int markerno, int nmarkers, int ncombo);
+void setInitialCombination(int markercombo[MAX_MARKER_COMBINATIONS], int markerno,
+                           int nmarkers, int combinations);
+bool increaseCombination(int markercombo[MAX_MARKER_COMBINATIONS], int markerno,
+                         int nmarkers, int ncombo);
 void populateMDRParts(unsigned char *data, int length);
+void swap(unsigned char a, unsigned char b);
 void randomShuffle(unsigned char *data, int length);
+void clearMDRResults(int mdrpartres[N_MDR_PARTS][PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS],
+                     int combinations);
+float balancedAccuracy(struct MDRData res);
+struct MDRAccuracy analyseAlleles(unsigned char **gendata, int markercombo[MAX_MARKER_COMBINATIONS],
+                                 unsigned char *phenotype,unsigned char *mdrparts, int ncombo, int nindividuals);
 void mdr(unsigned char **gendata, unsigned char *phenotype, int *marker,
          int nmarkers, int nindividuals, int nselectmarkers, int permutations);
 //------------------------------------------------------------------------------
