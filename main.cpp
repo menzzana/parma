@@ -17,13 +17,6 @@ GNU General Public License for more details.
 Copy of the GNU General Public License can be onbtained from
 see <http://www.gnu.org/licenses/>.
 *******************************************************************************/
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <unistd.h>     
-#include "mpi.h"
 #include "version_config.h"
 #include "global.h"
 #include "mdr.h"
@@ -31,38 +24,36 @@ see <http://www.gnu.org/licenses/>.
 int main(int argc, char **argv) {
   int optionvalue, nindividuals, nmarkers, permutations, combinations;
   unsigned char **gendata, **markername, *phenotype;
-  char filename[MAX_LENGTH_STRING],phenoname[MAX_LENGTH_STRING];
-  char filenamemarkers[MAX_LENGTH_STRING];
+  char filename[global::MAX_LENGTH_STRING],phenoname[global::MAX_LENGTH_STRING];
+  char filenamemarkers[global::MAX_LENGTH_STRING];
 
   printVersion();
-  while ((optionvalue=getopt(argc,argv,"f:p:m:s:t:"))!=END_OF_OPTIONS)
+  while ((optionvalue=getopt(argc,argv,"f:p:m:s:t:c:"))!=global::END_OF_OPTIONS)
     switch (optionvalue) {
       case 'f':
-        strncpy(filename,optarg,MAX_LENGTH_STRING-1);
+        strncpy(filename,optarg,global::MAX_LENGTH_STRING-1);
         break;
       case 'p':
         permutations=atoi(optarg);
         break;
       case 'm':
-        strncpy(filenamemarkers,optarg,MAX_LENGTH_STRING-1);
+        strncpy(filenamemarkers,optarg,global::MAX_LENGTH_STRING-1);
         break;
       case 's':
-        sran1(atol(optarg));
+        ran1(atol(optarg));
         break;
       case 't':
-        strncpy(phenoname,optarg,MAX_LENGTH_STRING-1);
+        strncpy(phenoname,optarg,global::MAX_LENGTH_STRING-1);
         break;
       case 'c':
         combinations=atoi(optarg);
         break;
       default:
+
         fprintf(stderr,"Unknown option `-%c'.\n", optopt);
         exit(EXIT_FAILURE);
       }
 
-
-
-  free(phenotype);
   exit(EXIT_SUCCESS);
   }
 //------------------------------------------------------------------------------

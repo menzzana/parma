@@ -1,7 +1,7 @@
 project(parma)
 cmake_minimum_required(VERSION 2.8)
 aux_source_directory(. SRC_LIST)
-add_executable(${PROJECT_NAME} ${SRC_LIST} global.h)
+add_executable(${PROJECT_NAME} ${SRC_LIST})
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 ###############################################################################
@@ -28,5 +28,5 @@ endif(MPI_FOUND)
 # Link and include
 ###############################################################################
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR} ${MPI_C_INCLUDE_PATH})
-target_link_libraries(${PROJECT_NAME} ${MPI_C_LIBRARIES})
+include_directories(${CMAKE_CURRENT_BINARY_DIR} ${MPI_CXX_INCLUDE_PATH})
+target_link_libraries(${PROJECT_NAME} ${MPI_CXX_LIBRARIES})
