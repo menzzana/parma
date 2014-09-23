@@ -41,7 +41,7 @@ OPTIONS
 -f [file]			The [file] that should contain the genetic data
 -m [file]			The [file] containing the markers to be analyzed
 							If not included all markers will be analyzed
--t [value]		Which pehnotype [value] should be treated as cases
+-t [value]		Which phenotype [value] should be treated as cases
 
 See parma -h for more information about [OPTIONS]
 

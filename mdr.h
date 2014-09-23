@@ -34,38 +34,42 @@ namespace MDR {
 //------------------------------------------------------------------------------
   class SummedData {
     public:
-    float tp,fp,tn,fn;
-    float accuracy,npospermutations;
+      float tp,fp,tn,fn;
+      float accuracy,npospermutations;
 
-    void clear();
-    void setAccuracy();
+      void clear();
+      void setAccuracy();
     };
+//------------------------------------------------------------------------------
   class Result {
     public:
-    int markercombo[MAX_MARKER_COMBINATIONS];
-    SummedData train,test;
+      int markercombo[MAX_MARKER_COMBINATIONS];
+      SummedData train,test;
     };
+//------------------------------------------------------------------------------
   class Analysis {
     private:
-    unsigned char **permpheno,*parts;
-    int markercombo[MAX_MARKER_COMBINATIONS];
+      unsigned char **permpheno,*parts;
+      int markercombo[MAX_MARKER_COMBINATIONS];
+      int mdrpartres[N_MDR_PARTS][PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS];
+      int mdrsumres[PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS];
+
+      void populateMDRParts();
+      void randomShuffle(unsigned char *data);
+      void setInitialCombination(int *markercombo, int idxmark, int combinations);
+      bool increaseCombination(int *markercombo, int idxmark, int combinations);
+      void clearMDRResults(int combinations);
+      Result analyseAlleles(int *markercombo, unsigned char *vpheno, int combinations);
 
     public:
-    int permutations,nindividuals,nmarkers,frommarker,tomarker;
-    unsigned char **gendata,*phenotype,*marker;
+      int permutations,nindividuals,nmarkers,frommarker,tomarker;
+      int *marker;
+      unsigned char **gendata,*phenotype;
 
-    Analysis();
-    void setInitialArrays();
-    void populateMDRParts();
-    void randomShuffle(unsigned char *data);
-    void setInitialCombination(int markercombo[MAX_MARKER_COMBINATIONS], int idxmark, int combinations);
-    bool increaseCombination(int markercombo[MAX_MARKER_COMBINATIONS], int idxmark, int ncombo);
-    void clearMDRResults(int mdrpartres[N_MDR_PARTS][PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS],
-                         int mdrsumres[PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS],
-                         int combinations);
-    Result analyseAlleles(int markercombo[MAX_MARKER_COMBINATIONS],unsigned char *vpheno,int ncombo);
-    void Run();
-    ~Analysis();
+      Analysis();
+      void setInitialArrays();
+      void Run();
+      ~Analysis();
     };
   }
 //------------------------------------------------------------------------------

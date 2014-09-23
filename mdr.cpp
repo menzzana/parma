@@ -3,6 +3,19 @@
 //---------------------------------------------------------------------------
 using namespace MDR;
 //---------------------------------------------------------------------------
+void SummedData::clear() {
+  tp=tn=fp=fn=0;
+  accuracy=npospermutations=0;
+  }
+//---------------------------------------------------------------------------
+void SummedData::setAccuracy() {
+  float sens,spec;
+
+  sens=tp/(tp+fn);
+  spec=tn/(fp+tn);
+  accuracy=(sens+spec)/2;
+  }
+//---------------------------------------------------------------------------
 Analysis::Analysis() {
   permutations=nindividuals=nmarkers=frommarker=tomarker=0;
   gendata=NULL;
@@ -37,14 +50,14 @@ void Analysis::randomShuffle(unsigned char *data) {
     std::swap(data[i1],data[(int)ran1(0)*nindividuals]);
   }
 //---------------------------------------------------------------------------
-void Analysis::setInitialCombination(int markercombo[MAX_MARKER_COMBINATIONS], int idxmark, int combinations) {
+void Analysis::setInitialCombination(int *markercombo, int idxmark, int combinations) {
   markercombo[0]=idxmark;
   if (nmarkers>1)
     for (int i1=1; i1<combinations; i1++)
       markercombo[i1]=idxmark==0?1:0;
   }
 //---------------------------------------------------------------------------
-bool Analysis::increaseCombination(int markercombo[MAX_MARKER_COMBINATIONS], int idxmark, int combinations) {
+bool Analysis::increaseCombination(int *markercombo, int idxmark, int combinations) {
   for (int i1=combinations-1; i1>0; i1++) {
     markercombo[i1]++;
     if (markercombo[i1]==idxmark)
@@ -56,9 +69,7 @@ bool Analysis::increaseCombination(int markercombo[MAX_MARKER_COMBINATIONS], int
   return true;
   }
 //---------------------------------------------------------------------------
-void Analysis::clearMDRResults(int mdrpartres[N_MDR_PARTS][PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS],
-                     int mdrsumres[PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS],
-                     int combinations) {
+void Analysis::clearMDRResults(int combinations) {
   int vlength;
 
   vlength=pow(combinations,ALLELE_COMBINATIONS);
@@ -70,66 +81,51 @@ void Analysis::clearMDRResults(int mdrpartres[N_MDR_PARTS][PHENOTYPE_COMBINATION
     }
   }
 //---------------------------------------------------------------------------
-void SummedData::clear() {
-  tp=tn=fp=fn=0;
-  accuracy=npospermutations=0;
-  }
-//---------------------------------------------------------------------------
-void SummedData::setAccuracy() {
-  float sens,spec;
-
-  sens=tp/(tp+fn);
-  spec=tn/(fp+tn);
-  accuracy=(sens+spec)/2;
-  }
-//---------------------------------------------------------------------------
-Result Analysis::analyseAlleles(int markercombo[MAX_MARKER_COMBINATIONS],unsigned char *vpheno,int ncombo) {
+Result Analysis::analyseAlleles(int *markercombo, unsigned char *vpheno, int combinations) {
   Result accres;
-  int mdrres[N_MDR_PARTS][PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS];
-  int mdrsumres[PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS];
   int idxmark,idxind,idxres,idxparts;
 
-  clearMDRResults(mdrres,mdrsumres,ncombo);
+  clearMDRResults(combinations);
   for (idxind=0; idxind<nindividuals; idxind++) {
     idxres=0;
-    for(idxmark=0; idxmark<ncombo; idxmark++)
+    for(idxmark=0; idxmark<combinations; idxmark++)
       idxres+=pow(ALLELE_COMBINATIONS,idxmark)*gendata[idxind][markercombo[idxmark]];
-    mdrres[parts[idxind]][vpheno[idxind]][idxres]++;
-    mdrsumres[vpheno[idxind]][idxres]++;
+    mdrpartres[parts[idxind]][(int)vpheno[idxind]][idxres]++;
+    mdrsumres[(int)vpheno[idxind]][idxres]++;
     }
   accres.test.clear();
   accres.train.clear();
   for (idxparts=0; idxparts<N_MDR_PARTS; idxparts++)
-    for(idxres=0; idxres<pow(ncombo,ALLELE_COMBINATIONS); idxres++) {
-      if (mdrres[idxparts][CONTROL][idxres]==0 && mdrres[idxparts][CASE][idxres]==0)
+    for(idxres=0; idxres<pow(combinations,ALLELE_COMBINATIONS); idxres++) {
+      if (mdrpartres[idxparts][CONTROL][idxres]==0 && mdrpartres[idxparts][CASE][idxres]==0)
         continue;
-      if ((mdrres[CONTROL][idxres]-mdrres[idxparts][CONTROL][idxres])>
-          (mdrres[CASE][idxres]-mdrres[idxparts][CASE][idxres])) {
-        accres.train.tn+=mdrres[idxparts][CONTROL][idxres];
-        accres.train.fp+=mdrres[idxparts][CASE][idxres];
-        if (mdrres[idxparts][CONTROL][idxres]>mdrres[idxparts][CASE][idxres]) {
-          accres.test.fp+=mdrres[idxparts][CASE][idxres];
-          accres.test.tn+=mdrres[idxparts][CONTROL][idxres];
+      if ((mdrpartres[CONTROL][idxres]-mdrpartres[idxparts][CONTROL][idxres])>
+          (mdrpartres[CASE][idxres]-mdrpartres[idxparts][CASE][idxres])) {
+        accres.train.tn+=mdrpartres[idxparts][CONTROL][idxres];
+        accres.train.fp+=mdrpartres[idxparts][CASE][idxres];
+        if (mdrpartres[idxparts][CONTROL][idxres]>mdrpartres[idxparts][CASE][idxres]) {
+          accres.test.fp+=mdrpartres[idxparts][CASE][idxres];
+          accres.test.tn+=mdrpartres[idxparts][CONTROL][idxres];
           }
         else {
-          accres.test.tp+=mdrres[idxparts][CASE][idxres];
-          accres.test.fn+=mdrres[idxparts][CONTROL][idxres];
+          accres.test.tp+=mdrpartres[idxparts][CASE][idxres];
+          accres.test.fn+=mdrpartres[idxparts][CONTROL][idxres];
           }
         }
       else {
-        accres.train.fn+=mdrres[idxparts][CONTROL][idxres];
-        accres.train.tp+=mdrres[idxparts][CASE][idxres];
-        if (mdrres[idxparts][CONTROL][idxres]>mdrres[idxparts][CASE][idxres]) {
-          accres.test.fp+=mdrres[idxparts][CASE][idxres];
-          accres.test.tn+=mdrres[idxparts][CONTROL][idxres];
+        accres.train.fn+=mdrpartres[idxparts][CONTROL][idxres];
+        accres.train.tp+=mdrpartres[idxparts][CASE][idxres];
+        if (mdrpartres[idxparts][CONTROL][idxres]>mdrpartres[idxparts][CASE][idxres]) {
+          accres.test.fp+=mdrpartres[idxparts][CASE][idxres];
+          accres.test.tn+=mdrpartres[idxparts][CONTROL][idxres];
           }
         else {
-          accres.test.tp+=mdrres[idxparts][CASE][idxres];
-          accres.test.fn+=mdrres[idxparts][CONTROL][idxres];
+          accres.test.tp+=mdrpartres[idxparts][CASE][idxres];
+          accres.test.fn+=mdrpartres[idxparts][CONTROL][idxres];
           }
         }
       }
-  memcpy(accres.markercombo,markercombo,ncombo);
+  memcpy(accres.markercombo,markercombo,combinations);
   accres.train.setAccuracy();
   accres.test.setAccuracy();
   return accres;
