@@ -20,40 +20,67 @@ see <http://www.gnu.org/licenses/>.
 #include "version_config.h"
 #include "global.h"
 #include "mdr.h"
+#include "loader.h"
+//------------------------------------------------------------------------------
+using namespace std;
+//------------------------------------------------------------------------------
+Loader *mydata;
+MDR::Analysis myanalysis;
+//------------------------------------------------------------------------------
+void cleanUp(int exitvalue) {
+  delete mydata;
+  exit(exitvalue);
+  }
 //------------------------------------------------------------------------------
 int main(int argc, char **argv) {
-  int optionvalue, nindividuals, nmarkers, permutations, combinations;
-  unsigned char **gendata, **markername, *phenotype;
-  char filename[global::MAX_LENGTH_STRING],phenoname[global::MAX_LENGTH_STRING];
-  char filenamemarkers[global::MAX_LENGTH_STRING];
+  string filename,phenoname, filenamemarkers;
+  int optionvalue;
 
   printVersion();
-  while ((optionvalue=getopt(argc,argv,"f:p:m:s:t:c:"))!=global::END_OF_OPTIONS)
-    switch (optionvalue) {
-      case 'f':
-        strncpy(filename,optarg,global::MAX_LENGTH_STRING-1);
-        break;
-      case 'p':
-        permutations=atoi(optarg);
-        break;
-      case 'm':
-        strncpy(filenamemarkers,optarg,global::MAX_LENGTH_STRING-1);
-        break;
-      case 's':
-        ran1(atol(optarg));
-        break;
-      case 't':
-        strncpy(phenoname,optarg,global::MAX_LENGTH_STRING-1);
-        break;
-      case 'c':
-        combinations=atoi(optarg);
-        break;
-      default:
-
-        fprintf(stderr,"Unknown option `-%c'.\n", optopt);
-        exit(EXIT_FAILURE);
-      }
-
-  exit(EXIT_SUCCESS);
+  try {
+    while ((optionvalue=getopt(argc,argv,"f:p:m:s:t:d:"))!=global::END_OF_OPTIONS)
+      switch (optionvalue) {
+        case 'f':
+          filename=optarg;
+          break;
+        case 'p':
+          myanalysis.permutations=atoi(optarg);
+          break;
+        case 'm':
+          filenamemarkers=optarg;
+          break;
+        case 's':
+          ran1(atol(optarg));
+          break;
+        case 't':
+          phenoname=optarg;
+          break;
+        case 'd':
+          switch(atoi(optarg)) {
+            case 1: // Data format Example Loader class
+              mydata=new ExampleLoader();
+              break;
+            case 2: // Data format DB schizophrenia class
+              break;
+            }
+          break;
+        default:
+          THROW_ERROR("Unknown option: -"+optopt);
+        }
+    if (mydata==NULL)
+      THROW_ERROR("Genotype data format not set");
+    if (!mydata->loadFile(filename, phenoname))
+      THROW_ERROR("Cannot load data file: "+filename);
+    mydata->setData(myanalysis);
+    myanalysis.frommarker=0;
+    myanalysis.tomarker=mydata->nmarkers;
+    myanalysis.setInitialArrays();
+    myanalysis.Run();
+    cleanUp(EXIT_SUCCESS);
+    }
+  catch(exception &e) {
+    cerr << e.what() << endl;
+    cleanUp(EXIT_FAILURE);
+    }
   }
 //------------------------------------------------------------------------------

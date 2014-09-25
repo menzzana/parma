@@ -8,6 +8,7 @@
 #include <math.h>
 #include <iostream>
 #include <algorithm>
+#include "global.h"
 //------------------------------------------------------------------------------
 using namespace std;
 //------------------------------------------------------------------------------
@@ -63,7 +64,6 @@ namespace MDR {
 
     public:
       int permutations,nindividuals,nmarkers,frommarker,tomarker;
-      int *marker;
       unsigned char **gendata,*phenotype;
 
       Analysis();

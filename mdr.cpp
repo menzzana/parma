@@ -1,4 +1,3 @@
-#include "global.h"
 #include "mdr.h"
 //---------------------------------------------------------------------------
 using namespace MDR;
@@ -20,7 +19,6 @@ Analysis::Analysis() {
   permutations=nindividuals=nmarkers=frommarker=tomarker=0;
   gendata=NULL;
   phenotype=NULL;
-  marker=NULL;
   }
 //---------------------------------------------------------------------------
 void Analysis::setInitialArrays() {
@@ -144,7 +142,7 @@ void Analysis::Run() {
         //Permutations should be added here
         printf("Markers:");
         for (int i1=0; i1<ncombo; i1++)
-          printf(" %d",marker[origaccuracy.markercombo[i1]]);
+          printf(" %d",origaccuracy.markercombo[i1]);
         printf("\tTrain: %f\tTest: %f\n",origaccuracy.train.accuracy,origaccuracy.test.accuracy);
         /*
         for (i1=0; i1<permutation; i1++) {
