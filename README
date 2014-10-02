@@ -42,6 +42,8 @@ OPTIONS
 -m [file]			The [file] containing the markers to be analyzed
 							If not included all markers will be analyzed
 -t [value]		Which phenotype [value] should be treated as cases
+-c [value]		Max number of marker combinations tested
+-d [value]		Input data format
 
 See parma -h for more information about [OPTIONS]
 

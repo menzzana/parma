@@ -14,12 +14,6 @@ Loader::~Loader() {
     delete gendata[i1];
   delete gendata;
   }
-//------------------------------------------------------------------------------
-void Loader::setData(MDR::Analysis data) {
-  data.nmarkers=nmarkers;
-  data.gendata=gendata;
-  data.phenotype=phenotype;
-  }
 //---------------------------------------------------------------------------
 bool ExampleLoader::loadFile(string filename, string phenoname) {
   ifstream fpr;
@@ -48,12 +42,12 @@ bool ExampleLoader::loadFile(string filename, string phenoname) {
     phenotype=new unsigned char[nindividuals];
     for (idxind=0; idxind<nindividuals; idxind++) {
       if (!getline(fpr,fstr))
-        THROW_ERROR("Unexpected End of file");
+        throw runtime_error("Unexpected End of file");
       for (idxmark=i1=0; idxmark<nmarkers; idxmark++) {
-        gendata[idxind][idxmark]=fstr[i1];
+        gendata[idxind][idxmark]=fstr[i1]-ASCII0;
         i1=fstr.find(delimiter,i1)+1;
         }
-      phenotype[idxind]=fstr[i1];
+      phenotype[idxind]=(phenoname[0]==fstr[i1]?1:0);
       }
     fpr.close();
     return true;

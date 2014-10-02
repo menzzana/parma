@@ -10,19 +10,20 @@
 #include "global.h"
 #include "mdr.h"
 //------------------------------------------------------------------------------
-const char delimiter='\t';
-//------------------------------------------------------------------------------
 using namespace std;
 //------------------------------------------------------------------------------
 class Loader {
   public:
+    static const char delimiter='\t';
+    static const unsigned char ASCII0=48;
+    static const int STD=1;
+    static const int DB=2;
     int nindividuals,nmarkers;
     string *marker;
     unsigned char **gendata,*phenotype;
 
     Loader();
     virtual bool loadFile(string filename, string phenoname)=0;
-    void setData(MDR::Analysis data);
     ~Loader();
   };
 //------------------------------------------------------------------------------

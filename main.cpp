@@ -38,13 +38,16 @@ int main(int argc, char **argv) {
 
   printVersion();
   try {
-    while ((optionvalue=getopt(argc,argv,"f:p:m:s:t:d:"))!=global::END_OF_OPTIONS)
+    while ((optionvalue=getopt(argc,argv,"f:p:m:s:t:d:c:"))!=global::END_OF_OPTIONS)
       switch (optionvalue) {
         case 'f':
           filename=optarg;
           break;
         case 'p':
-          myanalysis.permutations=atoi(optarg);
+          myanalysis.npermutations=atoi(optarg);
+          break;
+        case 'c':
+          myanalysis.maxcombinations=atoi(optarg);
           break;
         case 'm':
           filenamemarkers=optarg;
@@ -57,25 +60,23 @@ int main(int argc, char **argv) {
           break;
         case 'd':
           switch(atoi(optarg)) {
-            case 1: // Data format Example Loader class
+            case Loader::STD: // Data format Example Loader class
               mydata=new ExampleLoader();
               break;
-            case 2: // Data format DB schizophrenia class
+            case Loader::DB: // Data format DB schizophrenia class
               break;
             }
           break;
         default:
-          THROW_ERROR("Unknown option: -"+optopt);
+          throw runtime_error("Unknown option: -"+optopt);
         }
     if (mydata==NULL)
-      THROW_ERROR("Genotype data format not set");
+      throw runtime_error("Genotype data format not set");
     if (!mydata->loadFile(filename, phenoname))
-      THROW_ERROR("Cannot load data file: "+filename);
-    mydata->setData(myanalysis);
-    myanalysis.frommarker=0;
-    myanalysis.tomarker=mydata->nmarkers;
-    myanalysis.setInitialArrays();
-    myanalysis.Run();
+      throw runtime_error("Cannot load data file: "+filename);
+    myanalysis.setParameters(mydata->nmarkers,mydata->nindividuals,mydata->gendata,mydata->phenotype);
+    if (!myanalysis.Run(0,mydata->nmarkers))
+      throw runtime_error("Cannot analyse data");
     cleanUp(EXIT_SUCCESS);
     }
   catch(exception &e) {

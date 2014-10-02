@@ -4,29 +4,84 @@ using namespace MDR;
 //---------------------------------------------------------------------------
 void SummedData::clear() {
   tp=tn=fp=fn=0;
-  accuracy=npospermutations=0;
+  accuracy=nnegpermutations=0;
+  }
+//---------------------------------------------------------------------------
+void SummedData::copy(SummedData summeddata) {
+  tp=summeddata.tp;
+  tn=summeddata.tn;
+  fp=summeddata.fp;
+  fn=summeddata.fn;
+  accuracy=summeddata.accuracy;
+  nnegpermutations=summeddata.nnegpermutations;
   }
 //---------------------------------------------------------------------------
 void SummedData::setAccuracy() {
   float sens,spec;
 
-  sens=tp/(tp+fn);
-  spec=tn/(fp+tn);
+  sens=(tp+fn)==0?0:tp/(tp+fn);
+  spec=(fp+tn)==0?0:tn/(fp+tn);
   accuracy=(sens+spec)/2;
   }
 //---------------------------------------------------------------------------
+double SummedData::getPvaluePermutations(int npermutations) {
+  return (npermutations-nnegpermutations)/(double)(npermutations==0?1:npermutations);
+  }
+//---------------------------------------------------------------------------
+void Result::clear() {
+  combinations=0;
+  train.clear();
+  test.clear();
+  }
+//---------------------------------------------------------------------------
+void Result::copy(Result result) {
+  combinations=result.combinations;
+  memcpy(markercombo,result.markercombo,sizeof(int)*combinations);
+  train.copy(result.train);
+  test.copy(result.test);
+  }
+//---------------------------------------------------------------------------
+void Result::testBestCombination(Result result, int npermutations) {
+  if ((result.test.nnegpermutations>test.nnegpermutations && npermutations>0) ||
+      (result.test.accuracy>test.accuracy && npermutations==0))
+    copy(result);
+  }
+//---------------------------------------------------------------------------
+void Result::print(int npermutations) {
+  cout << "Markers:";
+  for (int i1=0; i1<combinations; i1++)
+    cout << (i1==0?" ":",")<<markercombo[i1];
+  cout << "\tTrain: " << train.accuracy;
+  cout << "\tTest: " << test.accuracy;
+  cout << "\tP-Train: " << train.getPvaluePermutations(npermutations);
+  cout << "\tP-Test: " << test.getPvaluePermutations(npermutations) << endl;
+  }
+//---------------------------------------------------------------------------
 Analysis::Analysis() {
-  permutations=nindividuals=nmarkers=frommarker=tomarker=0;
+  npermutations=nindividuals=nmarkers=0;
+  maxcombinations=MAX_MARKER_COMBINATIONS;
   gendata=NULL;
   phenotype=NULL;
+  permpheno=NULL;
+  parts=NULL;
+  }
+//---------------------------------------------------------------------------
+void Analysis::setParameters(int nmarkers, int nindividuals, unsigned char **gendata, unsigned char *phenotype) {
+  this->nmarkers=nmarkers;
+  this->gendata=gendata;
+  this->phenotype=phenotype;
+  this->nindividuals=nindividuals;
+  this->npermutations=npermutations;
   }
 //---------------------------------------------------------------------------
 void Analysis::setInitialArrays() {
   parts=new unsigned char[nindividuals];
   populateMDRParts();
   randomShuffle(parts);
-  permpheno=new unsigned char*[permutations];
-  for (int i1=0; i1<permutations; i1++) {
+  if (npermutations==0)
+    return;
+  permpheno=new unsigned char*[npermutations];
+  for (int i1=0; i1<npermutations; i1++) {
     permpheno[i1]=new unsigned char[nindividuals];
     memcpy(permpheno[i1],phenotype,nindividuals);
     randomShuffle(permpheno[i1]);
@@ -45,41 +100,53 @@ void Analysis::populateMDRParts() {
 //---------------------------------------------------------------------------
 void Analysis::randomShuffle(unsigned char *data) {
   for (int i1=0; i1<nindividuals; i1++)
-    std::swap(data[i1],data[(int)ran1(0)*nindividuals]);
+    swap(data[i1],data[(int)(ran1(0)*nindividuals)]);
   }
 //---------------------------------------------------------------------------
-void Analysis::setInitialCombination(int *markercombo, int idxmark, int combinations) {
+int Analysis::getAlleleCombinations(int combinations) {
+  return pow(ALLELE_COMBINATIONS,combinations);
+  }
+//---------------------------------------------------------------------------
+bool Analysis::setInitialCombination(int idxmark, int combinations) {
+  if (nmarkers<(combinations+idxmark))
+    return false;
   markercombo[0]=idxmark;
-  if (nmarkers>1)
-    for (int i1=1; i1<combinations; i1++)
-      markercombo[i1]=idxmark==0?1:0;
+  for (int i1=1; i1<combinations; i1++)
+    markercombo[i1]=idxmark+combinations-i1;
+  return true;
   }
 //---------------------------------------------------------------------------
-bool Analysis::increaseCombination(int *markercombo, int idxmark, int combinations) {
-  for (int i1=combinations-1; i1>0; i1++) {
-    markercombo[i1]++;
-    if (markercombo[i1]==idxmark)
-      markercombo[i1]++;
-    if (markercombo[i1]<nmarkers)
-      return false;
-    markercombo[i1]=idxmark==0?1:0;
-    }
-  return true;
+bool Analysis::increaseCombination(int idxmarkcombo, int combinations) {
+  bool inccombo;
+
+  if (idxmarkcombo==combinations)
+    return false;
+  if (increaseMarker(idxmarkcombo))
+    return true;
+  if (!increaseCombination(idxmarkcombo+1,combinations))
+    return false;
+  markercombo[idxmarkcombo]=markercombo[idxmarkcombo+1];
+  return increaseMarker(idxmarkcombo);
+  }
+//---------------------------------------------------------------------------
+bool Analysis::increaseMarker(int idxmarkcombo) {
+  markercombo[idxmarkcombo]+=(markercombo[0]==(markercombo[idxmarkcombo]+1)?2:1);
+  return markercombo[idxmarkcombo]<nmarkers;
   }
 //---------------------------------------------------------------------------
 void Analysis::clearMDRResults(int combinations) {
   int vlength;
 
-  vlength=pow(combinations,ALLELE_COMBINATIONS);
-  memset(mdrsumres[CONTROL],0,vlength);
-  memset(mdrsumres[CASE],0,vlength);
+  vlength=getAlleleCombinations(combinations);
+  memset(mdrsumres[CONTROL],0,sizeof(int)*vlength);
+  memset(mdrsumres[CASE],0,sizeof(int)*vlength);
   for (int i1=0; i1<N_MDR_PARTS; i1++) {
-    memset(mdrpartres[i1][CONTROL],0,vlength);
-    memset(mdrpartres[i1][CASE],0,vlength);
+    memset(mdrpartres[i1][CONTROL],0,sizeof(int)*vlength);
+    memset(mdrpartres[i1][CASE],0,sizeof(int)*vlength);
     }
   }
 //---------------------------------------------------------------------------
-Result Analysis::analyseAlleles(int *markercombo, unsigned char *vpheno, int combinations) {
+Result Analysis::analyseAlleles(unsigned char *vpheno, int combinations) {
   Result accres;
   int idxmark,idxind,idxres,idxparts;
 
@@ -87,80 +154,68 @@ Result Analysis::analyseAlleles(int *markercombo, unsigned char *vpheno, int com
   for (idxind=0; idxind<nindividuals; idxind++) {
     idxres=0;
     for(idxmark=0; idxmark<combinations; idxmark++)
-      idxres+=pow(ALLELE_COMBINATIONS,idxmark)*gendata[idxind][markercombo[idxmark]];
-    mdrpartres[parts[idxind]][(int)vpheno[idxind]][idxres]++;
+      idxres+=getAlleleCombinations(idxmark)*gendata[idxind][markercombo[idxmark]];
+    mdrpartres[(int)parts[idxind]][(int)vpheno[idxind]][idxres]++;
     mdrsumres[(int)vpheno[idxind]][idxres]++;
     }
-  accres.test.clear();
-  accres.train.clear();
+  accres.clear();
   for (idxparts=0; idxparts<N_MDR_PARTS; idxparts++)
-    for(idxres=0; idxres<pow(combinations,ALLELE_COMBINATIONS); idxres++) {
+    for(idxres=0; idxres<getAlleleCombinations(combinations); idxres++) {
       if (mdrpartres[idxparts][CONTROL][idxres]==0 && mdrpartres[idxparts][CASE][idxres]==0)
         continue;
-      if ((mdrpartres[CONTROL][idxres]-mdrpartres[idxparts][CONTROL][idxres])>
-          (mdrpartres[CASE][idxres]-mdrpartres[idxparts][CASE][idxres])) {
-        accres.train.tn+=mdrpartres[idxparts][CONTROL][idxres];
-        accres.train.fp+=mdrpartres[idxparts][CASE][idxres];
-        if (mdrpartres[idxparts][CONTROL][idxres]>mdrpartres[idxparts][CASE][idxres]) {
-          accres.test.fp+=mdrpartres[idxparts][CASE][idxres];
-          accres.test.tn+=mdrpartres[idxparts][CONTROL][idxres];
-          }
-        else {
-          accres.test.tp+=mdrpartres[idxparts][CASE][idxres];
-          accres.test.fn+=mdrpartres[idxparts][CONTROL][idxres];
-          }
-        }
-      else {
-        accres.train.fn+=mdrpartres[idxparts][CONTROL][idxres];
-        accres.train.tp+=mdrpartres[idxparts][CASE][idxres];
-        if (mdrpartres[idxparts][CONTROL][idxres]>mdrpartres[idxparts][CASE][idxres]) {
-          accres.test.fp+=mdrpartres[idxparts][CASE][idxres];
-          accres.test.tn+=mdrpartres[idxparts][CONTROL][idxres];
-          }
-        else {
-          accres.test.tp+=mdrpartres[idxparts][CASE][idxres];
-          accres.test.fn+=mdrpartres[idxparts][CONTROL][idxres];
-          }
-        }
+      bool controlratio;
+      controlratio=mdrpartres[idxparts][CONTROL][idxres]>mdrpartres[idxparts][CASE][idxres];
+      (controlratio?accres.train.fp:accres.train.tp)+=mdrpartres[idxparts][CASE][idxres];
+      (controlratio?accres.train.tn:accres.train.fn)+=mdrpartres[idxparts][CONTROL][idxres];
+      controlratio=(mdrsumres[CONTROL][idxres]-mdrpartres[idxparts][CONTROL][idxres])>
+        (mdrsumres[CASE][idxres]-mdrpartres[idxparts][CASE][idxres]) &&
+        mdrpartres[idxparts][CONTROL][idxres]>mdrpartres[idxparts][CASE][idxres];
+      (controlratio?accres.test.fp:accres.test.tp)+=mdrpartres[idxparts][CASE][idxres];
+      (controlratio?accres.test.tn:accres.test.fn)+=mdrpartres[idxparts][CONTROL][idxres];
       }
-  memcpy(accres.markercombo,markercombo,combinations);
+  memcpy(accres.markercombo,markercombo,sizeof(int)*combinations);
+  accres.combinations=combinations;
   accres.train.setAccuracy();
   accres.test.setAccuracy();
   return accres;
   }
 //---------------------------------------------------------------------------
-void Analysis::Run() {
+bool Analysis::Run(int frommarker, int tomarker) {
   int ncombo,idxmark;
-  Result origaccuracy,permaccuracy;
-  int markercombo[MAX_MARKER_COMBINATIONS];
+  Result origaccuracy,permaccuracy,maxaccuracy;
 
-  for (ncombo=1; ncombo<=MAX_MARKER_COMBINATIONS; ncombo++) {
-    for (idxmark=frommarker; idxmark<tomarker; idxmark++) {
-      setInitialCombination(markercombo,idxmark,ncombo);
-      do {
-        origaccuracy=analyseAlleles(markercombo,phenotype,ncombo);
-        //Permutations should be added here
-        printf("Markers:");
-        for (int i1=0; i1<ncombo; i1++)
-          printf(" %d",origaccuracy.markercombo[i1]);
-        printf("\tTrain: %f\tTest: %f\n",origaccuracy.train.accuracy,origaccuracy.test.accuracy);
-        /*
-        for (i1=0; i1<permutation; i1++) {
-          permaccuracy=analyseAlleles(markercombo,permpheno[i1],ncombo);
-          if (permaccuracy.train>origaccuracy.train)
-            origaccuracy.train.npospermutations++;
-          if (permaccuracy.test>origaccuracy.test)
-            origaccuracy.test.npospermutations++;
-          }
-
-        */
-        } while (increaseCombination(markercombo,idxmark,ncombo));
+  setInitialArrays();
+  try {
+    for (ncombo=1; ncombo<=maxcombinations; ncombo++) {
+      maxaccuracy.clear();
+      for (idxmark=frommarker; idxmark<tomarker; idxmark++) {
+        if (!setInitialCombination(idxmark,ncombo))
+          continue;
+        do {
+          origaccuracy=analyseAlleles(phenotype,ncombo);
+          permaccuracy.clear();
+          for (int i1=0; i1<npermutations; i1++) {
+            permaccuracy=analyseAlleles(permpheno[i1],ncombo);
+            if (permaccuracy.train.accuracy<origaccuracy.train.accuracy)
+              origaccuracy.train.nnegpermutations++;
+            if (permaccuracy.test.accuracy<origaccuracy.test.accuracy)
+              origaccuracy.test.nnegpermutations++;
+            }
+          maxaccuracy.testBestCombination(origaccuracy,npermutations);
+          } while (increaseCombination(1,ncombo));
+        }
+      maxaccuracy.print(npermutations);
       }
+    return true;
+    }
+  catch(exception &e) {
+    cerr << e.what() << endl;
+    return false;
     }
   }
 //---------------------------------------------------------------------------
 Analysis::~Analysis() {
-  for (int i1=0; i1<permutations; i1++)
+  for (int i1=0; i1<npermutations; i1++)
     delete permpheno[i1];
   delete permpheno;
   delete parts;

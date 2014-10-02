@@ -8,6 +8,8 @@
 #include <ctype.h>
 #include <math.h>
 #include <stdexcept>
+#include <iostream>
+#include <sstream>
 #include "mpi.h"
 //------------------------------------------------------------------------------
 // global constants
@@ -22,7 +24,6 @@ namespace global {
 //------------------------------------------------------------------------------
 // global functions
 //------------------------------------------------------------------------------
-#define THROW_ERROR(text) throw runtime_error(text)
 #define IA 16807
 #define IM 2147483647
 #define AM (1.0/IM)
@@ -34,5 +35,16 @@ namespace global {
 #define RNMX (1.0-EPS)
 
 double ran1(long option);
+namespace global {
+  template<typename T> string to_string(T value) {
+    stringstream s1;
+
+    s1 << value;
+    return s1.str();
+    }
+
+  const int MAX_CHAR_SIZE=1000;
+  }
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 #endif // GLOBAL_H

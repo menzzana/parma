@@ -8,6 +8,7 @@
 #include <math.h>
 #include <iostream>
 #include <algorithm>
+#include <bitset>
 #include "global.h"
 //------------------------------------------------------------------------------
 using namespace std;
@@ -36,15 +37,21 @@ namespace MDR {
   class SummedData {
     public:
       float tp,fp,tn,fn;
-      float accuracy,npospermutations;
+      float accuracy,nnegpermutations;
 
       void clear();
+      void copy(SummedData summeddata);
       void setAccuracy();
+      double getPvaluePermutations(int npermutations);
     };
 //------------------------------------------------------------------------------
   class Result {
     public:
-      int markercombo[MAX_MARKER_COMBINATIONS];
+      void clear();
+      void copy(Result result);
+      void testBestCombination(Result result, int npermutations);
+      void print(int npermutations);
+      int markercombo[MAX_MARKER_COMBINATIONS],combinations;
       SummedData train,test;
     };
 //------------------------------------------------------------------------------
@@ -54,21 +61,25 @@ namespace MDR {
       int markercombo[MAX_MARKER_COMBINATIONS];
       int mdrpartres[N_MDR_PARTS][PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS];
       int mdrsumres[PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS];
+      //bitset<MAX_MARKER_COMBINATIONS> markerarray;
 
       void populateMDRParts();
       void randomShuffle(unsigned char *data);
-      void setInitialCombination(int *markercombo, int idxmark, int combinations);
-      bool increaseCombination(int *markercombo, int idxmark, int combinations);
+      int getAlleleCombinations(int combinations);
+      bool setInitialCombination(int idxmark, int combinations);
+      void setInitialArrays();
+      bool increaseCombination(int idxmarkcombo, int combinations);
+      bool increaseMarker(int idxmarkcombo);
       void clearMDRResults(int combinations);
-      Result analyseAlleles(int *markercombo, unsigned char *vpheno, int combinations);
+      Result analyseAlleles(unsigned char *vpheno, int combinations);
 
     public:
-      int permutations,nindividuals,nmarkers,frommarker,tomarker;
+      int nindividuals,nmarkers,npermutations,maxcombinations;
       unsigned char **gendata,*phenotype;
 
       Analysis();
-      void setInitialArrays();
-      void Run();
+      void setParameters(int nmarkers, int nindividuals, unsigned char **gendata, unsigned char *phenotype);
+      bool Run(int frommarker, int tomarker);
       ~Analysis();
     };
   }
