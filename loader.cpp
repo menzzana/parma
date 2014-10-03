@@ -2,6 +2,7 @@
 //------------------------------------------------------------------------------
 Loader::Loader() {
   nindividuals=nmarkers=0;
+  selectedmarkers=NULL;
   marker=NULL;
   gendata=NULL;
   phenotype=NULL;
@@ -10,10 +11,10 @@ Loader::Loader() {
 Loader::~Loader() {
   delete[] marker;
   delete phenotype;
-  delete selectedmarkers;
   for (int i1=0; i1<nindividuals; i1++)
     delete gendata[i1];
   delete gendata;
+  delete selectedmarkers;
   }
 //---------------------------------------------------------------------------
 void Loader::setSelectedMarkers() {

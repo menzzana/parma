@@ -220,6 +220,5 @@ Analysis::~Analysis() {
     delete permpheno[i1];
   delete permpheno;
   delete parts;
-  delete selectedmarkers;
   }
 //---------------------------------------------------------------------------
