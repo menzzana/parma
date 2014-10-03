@@ -34,9 +34,10 @@ void cleanUp(int exitvalue) {
 //------------------------------------------------------------------------------
 int main(int argc, char **argv) {
   string filename,phenoname, filenamemarkers;
-  int optionvalue,mpie,rank,numtasks;
+  int optionvalue,mpie,rank,numtasks,maxcombinations;
 
   printVersion();
+  maxcombinations=MDR::MAX_MARKER_COMBINATIONS;
   try {
     while ((optionvalue=getopt(argc,argv,"f:p:m:s:t:d:c:"))!=global::END_OF_OPTIONS)
       switch (optionvalue) {
@@ -47,7 +48,7 @@ int main(int argc, char **argv) {
           myanalysis.npermutations=atoi(optarg);
           break;
         case 'c':
-          myanalysis.maxcombinations=atoi(optarg);
+          maxcombinations=atoi(optarg);
           break;
         case 'm':
           filenamemarkers=optarg;
@@ -76,6 +77,7 @@ int main(int argc, char **argv) {
       throw runtime_error("Cannot load data file: "+filename);
     mydata->setSelectedMarkers();
     myanalysis.setParameters(mydata->nmarkers,mydata->nindividuals,mydata->gendata,mydata->phenotype,mydata->selectedmarkers);
+    myanalysis.setInitialArrays();
     /*
     mpie=MPI_Init(&argc,&argv);
     if (mpie!=MPI_SUCCESS)
@@ -85,8 +87,9 @@ int main(int argc, char **argv) {
     MPI_Comm_rank(MPI_COMM_WORLD,&rank);
     printf ("Hello, World from rank %d out of %d\n", rank, numtasks);
     */
-    if (!myanalysis.Run(0,mydata->nmarkers))
-      throw runtime_error("Cannot analyse data");
+    for (int i1=1; i1<=maxcombinations; i1++)
+      if (!myanalysis.Run(0,mydata->nmarkers,i1))
+        throw runtime_error("Cannot analyse data");
     //MPI_Finalize();
     cleanUp(EXIT_SUCCESS);
     }

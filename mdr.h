@@ -66,21 +66,21 @@ namespace MDR {
       void randomShuffle(unsigned char *data);
       int getAlleleCombinations(int combinations);
       bool setInitialCombination(int idxmark, int combinations);
-      void setInitialArrays();
       bool increaseCombination(int idxmarkcombo, int combinations);
       bool increaseMarker(int idxmarkcombo);
       void clearMDRResults(int combinations);
       Result analyseAlleles(unsigned char *vpheno, int combinations);
 
     public:
-      int nindividuals,nmarkers,npermutations,maxcombinations;
+      int nindividuals,nmarkers,npermutations;
       int *selectedmarkers;
       unsigned char **gendata,*phenotype;
 
       Analysis();
       void setParameters(int nmarkers, int nindividuals, unsigned char **gendata,
                          unsigned char *phenotype, int *selectedmarkers);
-      bool Run(int frommarker, int tomarker);
+      void setInitialArrays();
+      bool Run(int frommarker, int tomarker, int combinations);
       ~Analysis();
     };
   }

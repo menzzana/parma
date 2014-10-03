@@ -59,7 +59,6 @@ void Result::print(int npermutations) {
 //---------------------------------------------------------------------------
 Analysis::Analysis() {
   npermutations=nindividuals=nmarkers=0;
-  maxcombinations=MAX_MARKER_COMBINATIONS;
   gendata=NULL;
   phenotype=NULL;
   selectedmarkers=NULL;
@@ -181,32 +180,29 @@ Result Analysis::analyseAlleles(unsigned char *vpheno, int combinations) {
   return accres;
   }
 //---------------------------------------------------------------------------
-bool Analysis::Run(int frommarker, int tomarker) {
-  int ncombo,idxmark;
+bool Analysis::Run(int frommarker, int tomarker, int combinations) {
+  int idxmark;
   Result origaccuracy,permaccuracy,maxaccuracy;
 
-  setInitialArrays();
   try {
-    for (ncombo=1; ncombo<=maxcombinations; ncombo++) {
-      maxaccuracy=Result();
-      for (idxmark=frommarker; idxmark<tomarker; idxmark++) {
-        if (!setInitialCombination(selectedmarkers[idxmark],ncombo))
-          continue;
-        do {
-          origaccuracy=analyseAlleles(phenotype,ncombo);
-          permaccuracy=Result();
-          for (int i1=0; i1<npermutations; i1++) {
-            permaccuracy=analyseAlleles(permpheno[i1],ncombo);
-            if (permaccuracy.train.accuracy<origaccuracy.train.accuracy)
-              origaccuracy.train.nnegpermutations++;
-            if (permaccuracy.test.accuracy<origaccuracy.test.accuracy)
-              origaccuracy.test.nnegpermutations++;
-            }
-          maxaccuracy.testBestCombination(origaccuracy,npermutations);
-          } while (increaseCombination(1,ncombo));
-        }
-      maxaccuracy.print(npermutations);
+    maxaccuracy=Result();
+    for (idxmark=frommarker; idxmark<tomarker; idxmark++) {
+      if (!setInitialCombination(selectedmarkers[idxmark],combinations))
+        continue;
+      do {
+        origaccuracy=analyseAlleles(phenotype,combinations);
+        permaccuracy=Result();
+        for (int i1=0; i1<npermutations; i1++) {
+          permaccuracy=analyseAlleles(permpheno[i1],combinations);
+          if (permaccuracy.train.accuracy<origaccuracy.train.accuracy)
+            origaccuracy.train.nnegpermutations++;
+          if (permaccuracy.test.accuracy<origaccuracy.test.accuracy)
+            origaccuracy.test.nnegpermutations++;
+          }
+        maxaccuracy.testBestCombination(origaccuracy,npermutations);
+        } while (increaseCombination(1,combinations));
       }
+    maxaccuracy.print(npermutations);
     return true;
     }
   catch(exception &e) {
