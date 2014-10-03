@@ -34,7 +34,7 @@ void cleanUp(int exitvalue) {
 //------------------------------------------------------------------------------
 int main(int argc, char **argv) {
   string filename,phenoname, filenamemarkers;
-  int optionvalue;
+  int optionvalue,mpie,rank,numtasks;
 
   printVersion();
   try {
@@ -74,13 +74,25 @@ int main(int argc, char **argv) {
       throw runtime_error("Genotype data format not set");
     if (!mydata->loadFile(filename, phenoname))
       throw runtime_error("Cannot load data file: "+filename);
-    myanalysis.setParameters(mydata->nmarkers,mydata->nindividuals,mydata->gendata,mydata->phenotype);
+    mydata->setSelectedMarkers();
+    myanalysis.setParameters(mydata->nmarkers,mydata->nindividuals,mydata->gendata,mydata->phenotype,mydata->selectedmarkers);
+    /*
+    mpie=MPI_Init(&argc,&argv);
+    if (mpie!=MPI_SUCCESS)
+      throw runtime_error("Error starting MPI program. Terminating.");
+
+    MPI_Comm_size(MPI_COMM_WORLD,&numtasks);
+    MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+    printf ("Hello, World from rank %d out of %d\n", rank, numtasks);
+    */
     if (!myanalysis.Run(0,mydata->nmarkers))
       throw runtime_error("Cannot analyse data");
+    //MPI_Finalize();
     cleanUp(EXIT_SUCCESS);
     }
   catch(exception &e) {
     cerr << e.what() << endl;
+    //MPI_Abort(MPI_COMM_WORLD, mpie);
     cleanUp(EXIT_FAILURE);
     }
   }

@@ -39,7 +39,7 @@ namespace MDR {
       float tp,fp,tn,fn;
       float accuracy,nnegpermutations;
 
-      void clear();
+      SummedData();
       void copy(SummedData summeddata);
       void setAccuracy();
       double getPvaluePermutations(int npermutations);
@@ -47,7 +47,7 @@ namespace MDR {
 //------------------------------------------------------------------------------
   class Result {
     public:
-      void clear();
+      Result();
       void copy(Result result);
       void testBestCombination(Result result, int npermutations);
       void print(int npermutations);
@@ -61,7 +61,6 @@ namespace MDR {
       int markercombo[MAX_MARKER_COMBINATIONS];
       int mdrpartres[N_MDR_PARTS][PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS];
       int mdrsumres[PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS];
-      //bitset<MAX_MARKER_COMBINATIONS> markerarray;
 
       void populateMDRParts();
       void randomShuffle(unsigned char *data);
@@ -75,10 +74,12 @@ namespace MDR {
 
     public:
       int nindividuals,nmarkers,npermutations,maxcombinations;
+      int *selectedmarkers;
       unsigned char **gendata,*phenotype;
 
       Analysis();
-      void setParameters(int nmarkers, int nindividuals, unsigned char **gendata, unsigned char *phenotype);
+      void setParameters(int nmarkers, int nindividuals, unsigned char **gendata,
+                         unsigned char *phenotype, int *selectedmarkers);
       bool Run(int frommarker, int tomarker);
       ~Analysis();
     };

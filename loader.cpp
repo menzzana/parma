@@ -10,9 +10,20 @@ Loader::Loader() {
 Loader::~Loader() {
   delete[] marker;
   delete phenotype;
+  delete selectedmarkers;
   for (int i1=0; i1<nindividuals; i1++)
     delete gendata[i1];
   delete gendata;
+  }
+//---------------------------------------------------------------------------
+void Loader::setSelectedMarkers() {
+  int idxup,idxdown;
+
+  idxup=0;
+  idxdown=nmarkers-1;
+  selectedmarkers=new int[nmarkers];
+  for (int i1=0; i1<nmarkers; i1++)
+    selectedmarkers[i1]=(i1%2==0?idxup++:idxdown--);
   }
 //---------------------------------------------------------------------------
 bool ExampleLoader::loadFile(string filename, string phenoname) {

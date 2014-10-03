@@ -2,7 +2,7 @@
 //---------------------------------------------------------------------------
 using namespace MDR;
 //---------------------------------------------------------------------------
-void SummedData::clear() {
+SummedData::SummedData() {
   tp=tn=fp=fn=0;
   accuracy=nnegpermutations=0;
   }
@@ -28,10 +28,10 @@ double SummedData::getPvaluePermutations(int npermutations) {
   return (npermutations-nnegpermutations)/(double)(npermutations==0?1:npermutations);
   }
 //---------------------------------------------------------------------------
-void Result::clear() {
+Result::Result() {
   combinations=0;
-  train.clear();
-  test.clear();
+  train=SummedData();
+  test=SummedData();
   }
 //---------------------------------------------------------------------------
 void Result::copy(Result result) {
@@ -62,14 +62,17 @@ Analysis::Analysis() {
   maxcombinations=MAX_MARKER_COMBINATIONS;
   gendata=NULL;
   phenotype=NULL;
+  selectedmarkers=NULL;
   permpheno=NULL;
   parts=NULL;
   }
 //---------------------------------------------------------------------------
-void Analysis::setParameters(int nmarkers, int nindividuals, unsigned char **gendata, unsigned char *phenotype) {
+void Analysis::setParameters(int nmarkers, int nindividuals, unsigned char **gendata,
+                             unsigned char *phenotype, int *selectedmarkers) {
   this->nmarkers=nmarkers;
   this->gendata=gendata;
   this->phenotype=phenotype;
+  this->selectedmarkers=selectedmarkers;
   this->nindividuals=nindividuals;
   this->npermutations=npermutations;
   }
@@ -117,8 +120,6 @@ bool Analysis::setInitialCombination(int idxmark, int combinations) {
   }
 //---------------------------------------------------------------------------
 bool Analysis::increaseCombination(int idxmarkcombo, int combinations) {
-  bool inccombo;
-
   if (idxmarkcombo==combinations)
     return false;
   if (increaseMarker(idxmarkcombo))
@@ -158,7 +159,7 @@ Result Analysis::analyseAlleles(unsigned char *vpheno, int combinations) {
     mdrpartres[(int)parts[idxind]][(int)vpheno[idxind]][idxres]++;
     mdrsumres[(int)vpheno[idxind]][idxres]++;
     }
-  accres.clear();
+  accres=Result();
   for (idxparts=0; idxparts<N_MDR_PARTS; idxparts++)
     for(idxres=0; idxres<getAlleleCombinations(combinations); idxres++) {
       if (mdrpartres[idxparts][CONTROL][idxres]==0 && mdrpartres[idxparts][CASE][idxres]==0)
@@ -187,13 +188,13 @@ bool Analysis::Run(int frommarker, int tomarker) {
   setInitialArrays();
   try {
     for (ncombo=1; ncombo<=maxcombinations; ncombo++) {
-      maxaccuracy.clear();
+      maxaccuracy=Result();
       for (idxmark=frommarker; idxmark<tomarker; idxmark++) {
-        if (!setInitialCombination(idxmark,ncombo))
+        if (!setInitialCombination(selectedmarkers[idxmark],ncombo))
           continue;
         do {
           origaccuracy=analyseAlleles(phenotype,ncombo);
-          permaccuracy.clear();
+          permaccuracy=Result();
           for (int i1=0; i1<npermutations; i1++) {
             permaccuracy=analyseAlleles(permpheno[i1],ncombo);
             if (permaccuracy.train.accuracy<origaccuracy.train.accuracy)
@@ -219,6 +220,6 @@ Analysis::~Analysis() {
     delete permpheno[i1];
   delete permpheno;
   delete parts;
+  delete selectedmarkers;
   }
 //---------------------------------------------------------------------------
-

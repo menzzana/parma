@@ -21,8 +21,10 @@ class Loader {
     int nindividuals,nmarkers;
     string *marker;
     unsigned char **gendata,*phenotype;
+    int *selectedmarkers;
 
     Loader();
+    void setSelectedMarkers();
     virtual bool loadFile(string filename, string phenoname)=0;
     ~Loader();
   };
