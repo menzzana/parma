@@ -50,7 +50,7 @@ namespace MDR {
       Result();
       void copy(Result result);
       void testBestCombination(Result result, int npermutations);
-      void print(int npermutations);
+      void print(string *marker, int npermutations);
       int markercombo[MAX_MARKER_COMBINATIONS],combinations;
       SummedData train,test;
     };
@@ -72,15 +72,16 @@ namespace MDR {
       Result analyseAlleles(unsigned char *vpheno, int combinations);
 
     public:
-      int nindividuals,nmarkers,npermutations;
+      int nindividuals,nmarkers,npermutations,maxcombinations;
       int *selectedmarkers;
       unsigned char **gendata,*phenotype;
+      string *marker;
 
       Analysis();
       void setParameters(int nmarkers, int nindividuals, unsigned char **gendata,
-                         unsigned char *phenotype, int *selectedmarkers);
+                         unsigned char *phenotype, string *marker, int *selectedmarkers);
       void setInitialArrays();
-      bool Run(int frommarker, int tomarker, int combinations);
+      bool Run(int frommarker, int tomarker);
       ~Analysis();
     };
   }

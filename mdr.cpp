@@ -47,14 +47,20 @@ void Result::testBestCombination(Result result, int npermutations) {
     copy(result);
   }
 //---------------------------------------------------------------------------
-void Result::print(int npermutations) {
-  cout << "Markers:";
+void Result::print(string *marker,int npermutations) {
+  static bool printed=false;
+
+  if (!printed)
+    cout << "Markers\tTrain\tTest\tTrain p-value\tTest p-value" << endl;
+  printed=true;
   for (int i1=0; i1<combinations; i1++)
-    cout << (i1==0?" ":",")<<markercombo[i1];
-  cout << "\tTrain: " << train.accuracy;
-  cout << "\tTest: " << test.accuracy;
-  cout << "\tP-Train: " << train.getPvaluePermutations(npermutations);
-  cout << "\tP-Test: " << test.getPvaluePermutations(npermutations) << endl;
+    cout << (i1==0?"":",")<<marker[markercombo[i1]];
+  cout  << "\t" << train.accuracy << "\t" << test.accuracy;
+  if (npermutations>0) {
+    cout << "\t" << train.getPvaluePermutations(npermutations);
+    cout << "\t" << test.getPvaluePermutations(npermutations);
+    }
+  cout << endl;
   }
 //---------------------------------------------------------------------------
 Analysis::Analysis() {
@@ -62,18 +68,19 @@ Analysis::Analysis() {
   gendata=NULL;
   phenotype=NULL;
   selectedmarkers=NULL;
+  marker=NULL;
   permpheno=NULL;
   parts=NULL;
   }
 //---------------------------------------------------------------------------
 void Analysis::setParameters(int nmarkers, int nindividuals, unsigned char **gendata,
-                             unsigned char *phenotype, int *selectedmarkers) {
+                             unsigned char *phenotype, string *marker, int *selectedmarkers) {
   this->nmarkers=nmarkers;
   this->gendata=gendata;
   this->phenotype=phenotype;
+  this->marker=marker;
   this->selectedmarkers=selectedmarkers;
   this->nindividuals=nindividuals;
-  this->npermutations=npermutations;
   }
 //---------------------------------------------------------------------------
 void Analysis::setInitialArrays() {
@@ -180,29 +187,32 @@ Result Analysis::analyseAlleles(unsigned char *vpheno, int combinations) {
   return accres;
   }
 //---------------------------------------------------------------------------
-bool Analysis::Run(int frommarker, int tomarker, int combinations) {
-  int idxmark;
+bool Analysis::Run(int frommarker, int tomarker) {
+  int idxmark,ncombo;
   Result origaccuracy,permaccuracy,maxaccuracy;
 
+  setInitialArrays();
   try {
-    maxaccuracy=Result();
-    for (idxmark=frommarker; idxmark<tomarker; idxmark++) {
-      if (!setInitialCombination(selectedmarkers[idxmark],combinations))
-        continue;
-      do {
-        origaccuracy=analyseAlleles(phenotype,combinations);
-        permaccuracy=Result();
-        for (int i1=0; i1<npermutations; i1++) {
-          permaccuracy=analyseAlleles(permpheno[i1],combinations);
-          if (permaccuracy.train.accuracy<origaccuracy.train.accuracy)
-            origaccuracy.train.nnegpermutations++;
-          if (permaccuracy.test.accuracy<origaccuracy.test.accuracy)
-            origaccuracy.test.nnegpermutations++;
-          }
-        maxaccuracy.testBestCombination(origaccuracy,npermutations);
-        } while (increaseCombination(1,combinations));
+    for (ncombo=1; ncombo<=maxcombinations; ncombo++) {
+      maxaccuracy=Result();
+      for (idxmark=frommarker; idxmark<tomarker; idxmark++) {
+        if (!setInitialCombination(selectedmarkers[idxmark],ncombo))
+          continue;
+        do {
+          origaccuracy=analyseAlleles(phenotype,ncombo);
+          permaccuracy=Result();
+          for (int i1=0; i1<npermutations; i1++) {
+            permaccuracy=analyseAlleles(permpheno[i1],ncombo);
+            if (permaccuracy.train.accuracy<origaccuracy.train.accuracy)
+              origaccuracy.train.nnegpermutations++;
+            if (permaccuracy.test.accuracy<origaccuracy.test.accuracy)
+              origaccuracy.test.nnegpermutations++;
+            }
+          maxaccuracy.testBestCombination(origaccuracy,npermutations);
+          } while (increaseCombination(1,ncombo));
+        }
+      maxaccuracy.print(marker,npermutations);
       }
-    maxaccuracy.print(npermutations);
     return true;
     }
   catch(exception &e) {

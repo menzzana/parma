@@ -41,7 +41,7 @@ bool ExampleLoader::loadFile(string filename, string phenoname) {
         nmarkers++;
     marker=new string[nmarkers];
     for (idxmark=i1=0; idxmark<nmarkers; idxmark++) {
-      marker[idxmark]=fstr.substr(i1,fstr.find(delimiter,i1)-i1+1);
+      marker[idxmark]=fstr.substr(i1,fstr.find(delimiter,i1)-i1);
       i1=fstr.find(delimiter,i1)+1;
       }
     fpos=fpr.tellg();

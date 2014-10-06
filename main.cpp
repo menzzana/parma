@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
           myanalysis.npermutations=atoi(optarg);
           break;
         case 'c':
-          maxcombinations=atoi(optarg);
+          myanalysis.maxcombinations=atoi(optarg);
           break;
         case 'm':
           filenamemarkers=optarg;
@@ -76,8 +76,8 @@ int main(int argc, char **argv) {
     if (!mydata->loadFile(filename, phenoname))
       throw runtime_error("Cannot load data file: "+filename);
     mydata->setSelectedMarkers();
-    myanalysis.setParameters(mydata->nmarkers,mydata->nindividuals,mydata->gendata,mydata->phenotype,mydata->selectedmarkers);
-    myanalysis.setInitialArrays();
+    myanalysis.setParameters(mydata->nmarkers,mydata->nindividuals,mydata->gendata,mydata->phenotype,
+                             mydata->marker,mydata->selectedmarkers);
     /*
     mpie=MPI_Init(&argc,&argv);
     if (mpie!=MPI_SUCCESS)
@@ -87,9 +87,8 @@ int main(int argc, char **argv) {
     MPI_Comm_rank(MPI_COMM_WORLD,&rank);
     printf ("Hello, World from rank %d out of %d\n", rank, numtasks);
     */
-    for (int i1=1; i1<=maxcombinations; i1++)
-      if (!myanalysis.Run(0,mydata->nmarkers,i1))
-        throw runtime_error("Cannot analyse data");
+    if (!myanalysis.Run(0,mydata->nmarkers))
+      throw runtime_error("Cannot analyse data");
     //MPI_Finalize();
     cleanUp(EXIT_SUCCESS);
     }
