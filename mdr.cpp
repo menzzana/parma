@@ -65,6 +65,7 @@ void Result::print(string *marker,int npermutations) {
 //---------------------------------------------------------------------------
 Analysis::Analysis() {
   npermutations=nindividuals=nmarkers=0;
+  cutpvalue=NO_CUTOFF;
   gendata=NULL;
   phenotype=NULL;
   selectedmarkers=NULL;
@@ -208,10 +209,14 @@ bool Analysis::Run(int frommarker, int tomarker) {
             if (permaccuracy.test.accuracy<origaccuracy.test.accuracy)
               origaccuracy.test.nnegpermutations++;
             }
-          maxaccuracy.testBestCombination(origaccuracy,npermutations);
+          if (origaccuracy.test.getPvaluePermutations(npermutations)<=cutpvalue)
+            origaccuracy.print(marker,npermutations);
+          if (cutpvalue==NO_CUTOFF)
+            maxaccuracy.testBestCombination(origaccuracy,npermutations);
           } while (increaseCombination(1,ncombo));
         }
-      maxaccuracy.print(marker,npermutations);
+      if (cutpvalue==NO_CUTOFF)
+        maxaccuracy.print(marker,npermutations);
       }
     return true;
     }

@@ -8,7 +8,6 @@
 #include <math.h>
 #include <iostream>
 #include <algorithm>
-#include <bitset>
 #include "global.h"
 //------------------------------------------------------------------------------
 using namespace std;
@@ -33,6 +32,7 @@ namespace MDR {
   static const int ALLELE_COMBINATIONS=3;
   // LIST_ALLELE_MARKER_COMBINATIONS=MAX_MARKER_COMBINATIONS^ALLELE_COMBINATIONS
   static const int LIST_ALLELE_MARKER_COMBINATIONS=10E6;
+  static const double NO_CUTOFF=-1;
 //------------------------------------------------------------------------------
   class SummedData {
     public:
@@ -75,6 +75,7 @@ namespace MDR {
       int nindividuals,nmarkers,npermutations,maxcombinations;
       int *selectedmarkers;
       unsigned char **gendata,*phenotype;
+      double cutpvalue;
       string *marker;
 
       Analysis();

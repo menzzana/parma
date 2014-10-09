@@ -21,9 +21,21 @@ see <http://www.gnu.org/licenses/>.
 #include "global.h"
 #include "mdr.h"
 #include "loader.h"
+#include <getopt.h>
 //------------------------------------------------------------------------------
 using namespace std;
 //------------------------------------------------------------------------------
+static struct option long_options[]={
+  {"file",required_argument,0,'f'},
+  {"perm",required_argument,0,'p'},
+  {"mfile",required_argument,0,'m'},
+  {"seed",required_argument,0,'s'},
+  {"pheno",required_argument,0,'t'},
+  {"dtype",required_argument,0,'d'},
+  {"comb",required_argument,0,'c'},
+  {"cpvalue",required_argument,0,'u'},
+  {0,0,0,0}
+  };
 Loader *mydata;
 MDR::Analysis myanalysis;
 //------------------------------------------------------------------------------
@@ -34,12 +46,12 @@ void cleanUp(int exitvalue) {
 //------------------------------------------------------------------------------
 int main(int argc, char **argv) {
   string filename,phenoname, filenamemarkers;
-  int optionvalue,mpie,rank,numtasks,maxcombinations;
+  int optionvalue,mpie,rank,numtasks,maxcombinations,optionindex;
 
   printVersion();
   maxcombinations=MDR::MAX_MARKER_COMBINATIONS;
   try {
-    while ((optionvalue=getopt(argc,argv,"f:p:m:s:t:d:c:"))!=global::END_OF_OPTIONS)
+    while ((optionvalue=getopt_long_only(argc,argv,"f:p:m:s:t:d:c:",long_options,&optionindex))!=global::END_OF_OPTIONS)
       switch (optionvalue) {
         case 'f':
           filename=optarg;
@@ -68,8 +80,11 @@ int main(int argc, char **argv) {
               break;
             }
           break;
+        case 'u':
+          myanalysis.cutpvalue=atof(optarg);
+          break;
         default:
-          throw runtime_error("Unknown option: -"+optopt);
+          throw runtime_error("See README for a list of options.");
         }
     if (mydata==NULL)
       throw runtime_error("Genotype data format not set");

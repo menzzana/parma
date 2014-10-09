@@ -36,14 +36,15 @@ main.c
 mdr.c
 
 OPTIONS
--s [value]		Set [value] as new seed for random calculations
--p [value]		Set [value] as the number of permutations
--f [file]			The [file] that should contain the genetic data
--m [file]			The [file] containing the markers to be analyzed
-							If not included all markers will be analyzed
--t [value]		Which phenotype [value] should be treated as cases
--c [value]		Max number of marker combinations tested
--d [value]		Input data format
+-seed [value]			Set [value] as new seed for random calculations
+-perm [value]			Set [value] as the number of permutations
+-file [file]			The [file] that should contain the genetic data
+-mfile [file]			The [file] containing the markers to be analyzed
+									If not included all markers will be analyzed
+-pheno [value]		Which phenotype [value] should be treated as cases
+-comb [value]			Max number of marker combinations tested
+-dtype [value]		Input data format
+-cpvalue [value]	Show only test pvalues below this limit.
+									Without this option only the best combinations will be shown
 
-See parma -h for more information about [OPTIONS]
 
