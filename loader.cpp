@@ -1,35 +1,7 @@
 #include "loader.h"
-//------------------------------------------------------------------------------
-Loader::Loader() {
-  nindividuals=nmarkers=0;
-  selectedmarkers=NULL;
-  marker=NULL;
-  gendata=NULL;
-  phenotype=NULL;
-  }
-//------------------------------------------------------------------------------
-Loader::~Loader() {
-  delete[] marker;
-  delete phenotype;
-  for (int i1=0; i1<nindividuals; i1++)
-    delete gendata[i1];
-  delete gendata;
-  delete selectedmarkers;
-  }
 //---------------------------------------------------------------------------
-void Loader::setSelectedMarkers() {
-  int idxup,idxdown;
-
-  idxup=0;
-  idxdown=nmarkers-1;
-  selectedmarkers=new int[nmarkers];
-  for (int i1=0; i1<nmarkers; i1++)
-    selectedmarkers[i1]=(i1%2==0?idxup++:idxdown--);
-  }
-//---------------------------------------------------------------------------
-bool ExampleLoader::loadFile(string filename, string phenoname) {
+bool ExampleLoader::loadFile(string filename, string phenoname, MDR::Analysis *analysis) {
   ifstream fpr;
-  streampos fpos;
   string fstr;
   int idxind,idxmark,i1;
 
@@ -38,28 +10,24 @@ bool ExampleLoader::loadFile(string filename, string phenoname) {
     getline(fpr,fstr);
     for (idxmark=0; idxmark<fstr.length(); idxmark++)
       if (fstr[idxmark]==delimiter)
-        nmarkers++;
-    marker=new string[nmarkers];
-    for (idxmark=i1=0; idxmark<nmarkers; idxmark++) {
-      marker[idxmark]=fstr.substr(i1,fstr.find(delimiter,i1)-i1);
+        analysis->nmarkers++;
+    for (analysis->nindividuals=0; getline(fpr,fstr); analysis->nindividuals++);
+    analysis->createDataBuffers(true);
+    fpr.clear();
+    fpr.seekg(0,ios_base::beg);
+    getline(fpr,fstr);
+    for (idxmark=i1=0; idxmark<analysis->nmarkers; idxmark++) {
+      strcpy(analysis->marker[idxmark],fstr.substr(i1,fstr.find(delimiter,i1)-i1).c_str());
       i1=fstr.find(delimiter,i1)+1;
       }
-    fpos=fpr.tellg();
-    for (nindividuals=0; getline(fpr,fstr); nindividuals++);
-    fpr.clear();
-    fpr.seekg(fpos,ios_base::beg);
-    gendata=new unsigned char*[nindividuals];
-    for (idxind=0; idxind<nindividuals; idxind++)
-      gendata[idxind]=new unsigned char[nmarkers];
-    phenotype=new unsigned char[nindividuals];
-    for (idxind=0; idxind<nindividuals; idxind++) {
+    for (idxind=0; idxind<analysis->nindividuals; idxind++) {
       if (!getline(fpr,fstr))
         throw runtime_error("Unexpected End of file");
-      for (idxmark=i1=0; idxmark<nmarkers; idxmark++) {
-        gendata[idxind][idxmark]=fstr[i1]-ASCII0;
+      for (idxmark=i1=0; idxmark<analysis->nmarkers; idxmark++) {
+        analysis->gendata[idxind][idxmark]=fstr[i1]-ASCII0;
         i1=fstr.find(delimiter,i1)+1;
         }
-      phenotype[idxind]=(phenoname[0]==fstr[i1]?1:0);
+      analysis->phenotype[idxind]=(phenoname[0]==fstr[i1]?1:0);
       }
     fpr.close();
     return true;

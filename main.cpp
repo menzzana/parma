@@ -39,78 +39,84 @@ static struct option long_options[]={
 Loader *mydata;
 MDR::Analysis myanalysis;
 //------------------------------------------------------------------------------
-void cleanUp(int exitvalue) {
+void cleanUp() {
   delete mydata;
-  exit(exitvalue);
   }
 //------------------------------------------------------------------------------
 int main(int argc, char **argv) {
   string filename,phenoname, filenamemarkers;
-  int optionvalue,mpie,rank,numtasks,maxcombinations,optionindex;
+  int optionvalue,mpirank,mpisize,maxcombinations,optionindex,exitvalue;
 
-  printVersion();
-  maxcombinations=MDR::MAX_MARKER_COMBINATIONS;
+  MPI::Init(argc,argv);
+  MPI::COMM_WORLD.Set_errhandler(MPI::ERRORS_THROW_EXCEPTIONS);
   try {
-    while ((optionvalue=getopt_long_only(argc,argv,"f:p:m:s:t:d:c:",long_options,&optionindex))!=global::END_OF_OPTIONS)
-      switch (optionvalue) {
-        case 'f':
-          filename=optarg;
-          break;
-        case 'p':
-          myanalysis.npermutations=atoi(optarg);
-          break;
-        case 'c':
-          myanalysis.maxcombinations=atoi(optarg);
-          break;
-        case 'm':
-          filenamemarkers=optarg;
-          break;
-        case 's':
-          ran1(atol(optarg));
-          break;
-        case 't':
-          phenoname=optarg;
-          break;
-        case 'd':
-          switch(atoi(optarg)) {
-            case Loader::STD: // Data format Example Loader class
-              mydata=new ExampleLoader();
-              break;
-            case Loader::DB: // Data format DB schizophrenia class
-              break;
-            }
-          break;
-        case 'u':
-          myanalysis.cutpvalue=atof(optarg);
-          break;
-        default:
-          throw runtime_error("See README for a list of options.");
-        }
-    if (mydata==NULL)
-      throw runtime_error("Genotype data format not set");
-    if (!mydata->loadFile(filename, phenoname))
-      throw runtime_error("Cannot load data file: "+filename);
-    mydata->setSelectedMarkers();
-    myanalysis.setParameters(mydata->nmarkers,mydata->nindividuals,mydata->gendata,mydata->phenotype,
-                             mydata->marker,mydata->selectedmarkers);
-    /*
-    mpie=MPI_Init(&argc,&argv);
-    if (mpie!=MPI_SUCCESS)
-      throw runtime_error("Error starting MPI program. Terminating.");
-
-    MPI_Comm_size(MPI_COMM_WORLD,&numtasks);
-    MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-    printf ("Hello, World from rank %d out of %d\n", rank, numtasks);
-    */
-    if (!myanalysis.Run(0,mydata->nmarkers))
+    mpisize=MPI::COMM_WORLD.Get_size();
+    mpirank=MPI::COMM_WORLD.Get_rank();
+    if (mpirank==global::MPIROOT) {
+      printVersion();
+      maxcombinations=MDR::MAX_MARKER_COMBINATIONS;
+      while ((optionvalue=getopt_long_only(argc,argv,"f:p:m:s:t:d:c:",long_options,&optionindex))!=global::END_OF_OPTIONS)
+        switch (optionvalue) {
+          case 'f':
+            filename=optarg;
+            break;
+          case 'p':
+            myanalysis.npermutations=atoi(optarg);
+            break;
+          case 'c':
+            myanalysis.maxcombinations=atoi(optarg);
+            break;
+          case 'm':
+            filenamemarkers=optarg;
+            break;
+          case 's':
+            ran1(atol(optarg));
+            break;
+          case 't':
+            phenoname=optarg;
+            break;
+          case 'd':
+            switch(atoi(optarg)) {
+              case Loader::STD: // Data format Example Loader class
+                mydata=new ExampleLoader();
+                break;
+              case Loader::DB: // Data format DB schizophrenia class
+                break;
+              }
+            break;
+          case 'u':
+            myanalysis.cutpvalue=atof(optarg);
+            break;
+          default:
+            throw runtime_error("See README for a list of options.");
+          }
+      if (mydata==NULL)
+        throw runtime_error("Genotype data format not set");
+      if (!mydata->loadFile(filename, phenoname, &myanalysis))
+        throw runtime_error("Cannot load data file: "+filename);
+      }
+    MPI::COMM_WORLD.Bcast(&myanalysis.nmarkers,1,MPI_INT,global::MPIROOT);
+    MPI::COMM_WORLD.Bcast(&myanalysis.nindividuals,1,MPI_INT,global::MPIROOT);
+    myanalysis.createDataBuffers(mpirank!=global::MPIROOT);
+    MPI::COMM_WORLD.Bcast(&myanalysis.phenotype[0],myanalysis.nindividuals,MPI_UNSIGNED_CHAR,global::MPIROOT);
+    MPI::COMM_WORLD.Bcast(&myanalysis.gendata[0][0],myanalysis.nmarkers*myanalysis.nindividuals,
+                          MPI_UNSIGNED_CHAR,global::MPIROOT);
+    MPI::COMM_WORLD.Bcast(&myanalysis.marker[0][0],myanalysis.nmarkers*global::MAX_LENGTH_MARKER_NAME,
+                          MPI_CHAR,global::MPIROOT);
+    if (!myanalysis.Run(mpirank,((float)myanalysis.nmarkers-0.5)/(float)mpisize+1))
       throw runtime_error("Cannot analyse data");
-    //MPI_Finalize();
-    cleanUp(EXIT_SUCCESS);
+    exitvalue=EXIT_SUCCESS;
+    }
+  catch (MPI::Exception e) {
+    cerr << "MPI ERROR: " << e.Get_error_code() << " - " << e.Get_error_string() << endl;
+    exitvalue=EXIT_FAILURE;
     }
   catch(exception &e) {
     cerr << e.what() << endl;
-    //MPI_Abort(MPI_COMM_WORLD, mpie);
-    cleanUp(EXIT_FAILURE);
+    exitvalue=EXIT_FAILURE;
     }
+  cleanUp();
+  MPI::Finalize();
+  exit(exitvalue);
   }
 //------------------------------------------------------------------------------

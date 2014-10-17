@@ -18,20 +18,13 @@ class Loader {
     static const unsigned char ASCII0=48;
     static const int STD=1;
     static const int DB=2;
-    int nindividuals,nmarkers;
-    string *marker;
-    unsigned char **gendata,*phenotype;
-    int *selectedmarkers;
 
-    Loader();
-    void setSelectedMarkers();
-    virtual bool loadFile(string filename, string phenoname)=0;
-    ~Loader();
+    virtual bool loadFile(string filename, string phenoname, MDR::Analysis *analysis)=0;
   };
 //------------------------------------------------------------------------------
 class ExampleLoader : public Loader {
   public:
-    bool loadFile(string filename, string phenoname);
+    bool loadFile(string filename, string phenoname, MDR::Analysis *analysis);
   };
 //------------------------------------------------------------------------------
 #endif // LOADER_H

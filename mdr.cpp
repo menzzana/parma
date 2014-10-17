@@ -47,7 +47,7 @@ void Result::testBestCombination(Result result, int npermutations) {
     copy(result);
   }
 //---------------------------------------------------------------------------
-void Result::print(string *marker,int npermutations) {
+void Result::print(char **marker,int npermutations) {
   static bool printed=false;
 
   if (!printed)
@@ -68,20 +68,23 @@ Analysis::Analysis() {
   cutpvalue=NO_CUTOFF;
   gendata=NULL;
   phenotype=NULL;
-  selectedmarkers=NULL;
   marker=NULL;
   permpheno=NULL;
   parts=NULL;
   }
 //---------------------------------------------------------------------------
-void Analysis::setParameters(int nmarkers, int nindividuals, unsigned char **gendata,
-                             unsigned char *phenotype, string *marker, int *selectedmarkers) {
-  this->nmarkers=nmarkers;
-  this->gendata=gendata;
-  this->phenotype=phenotype;
-  this->marker=marker;
-  this->selectedmarkers=selectedmarkers;
-  this->nindividuals=nindividuals;
+void Analysis::createDataBuffers(bool initthisrank) {
+  if (!initthisrank)
+    return;
+  phenotype=new unsigned char[nindividuals];
+  gendata=new unsigned char*[nindividuals];
+  gendata[0]=new unsigned char[nindividuals*nmarkers];
+  for (int i1=1; i1<nindividuals; i1++)
+    gendata[i1]=&gendata[0][i1*nmarkers];
+  marker=new char*[nmarkers];
+  marker[0]=new char[nmarkers*global::MAX_LENGTH_MARKER_NAME];
+  for (int i1=1; i1<nmarkers; i1++)
+    marker[i1]=&marker[0][i1*global::MAX_LENGTH_MARKER_NAME];
   }
 //---------------------------------------------------------------------------
 void Analysis::setInitialArrays() {
@@ -188,7 +191,7 @@ Result Analysis::analyseAlleles(unsigned char *vpheno, int combinations) {
   return accres;
   }
 //---------------------------------------------------------------------------
-bool Analysis::Run(int frommarker, int tomarker) {
+bool Analysis::Run(int rank, int blocksize) {
   int idxmark,ncombo;
   Result origaccuracy,permaccuracy,maxaccuracy;
 
@@ -196,8 +199,10 @@ bool Analysis::Run(int frommarker, int tomarker) {
   try {
     for (ncombo=1; ncombo<=maxcombinations; ncombo++) {
       maxaccuracy=Result();
-      for (idxmark=frommarker; idxmark<tomarker; idxmark++) {
-        if (!setInitialCombination(selectedmarkers[idxmark],ncombo))
+      //for (idxmark=frommarker; idxmark<tomarker; idxmark++) {
+      for (idxmark=rank; idxmark<nmarkers; idxmark+=blocksize) {
+        //if (!setInitialCombination(selectedmarkers[idxmark],ncombo))
+        if (!setInitialCombination(idxmark,ncombo))
           continue;
         do {
           origaccuracy=analyseAlleles(phenotype,ncombo);
@@ -231,5 +236,8 @@ Analysis::~Analysis() {
     delete permpheno[i1];
   delete permpheno;
   delete parts;
+  delete phenotype;
+  delete[] marker;
+  delete[] gendata;
   }
 //---------------------------------------------------------------------------

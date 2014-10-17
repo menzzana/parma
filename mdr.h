@@ -18,7 +18,7 @@ using namespace std;
 // .. and the arrays...
 // gendata phenotype marker
 // ...must be set
-// Then call setInitialArrays() & Run() for calculations
+// Then call Run(rank,blocksize) for calculations
 //------------------------------------------------------------------------------
 namespace MDR {
   static const unsigned char HOMOZYGOTE1=0;
@@ -50,7 +50,7 @@ namespace MDR {
       Result();
       void copy(Result result);
       void testBestCombination(Result result, int npermutations);
-      void print(string *marker, int npermutations);
+      void print(char **marker, int npermutations);
       int markercombo[MAX_MARKER_COMBINATIONS],combinations;
       SummedData train,test;
     };
@@ -63,6 +63,7 @@ namespace MDR {
       int mdrsumres[PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS];
 
       void populateMDRParts();
+      void setInitialArrays();
       void randomShuffle(unsigned char *data);
       int getAlleleCombinations(int combinations);
       bool setInitialCombination(int idxmark, int combinations);
@@ -73,16 +74,13 @@ namespace MDR {
 
     public:
       int nindividuals,nmarkers,npermutations,maxcombinations;
-      int *selectedmarkers;
       unsigned char **gendata,*phenotype;
       double cutpvalue;
-      string *marker;
+      char **marker;
 
       Analysis();
-      void setParameters(int nmarkers, int nindividuals, unsigned char **gendata,
-                         unsigned char *phenotype, string *marker, int *selectedmarkers);
-      void setInitialArrays();
-      bool Run(int frommarker, int tomarker);
+      void createDataBuffers(bool initthisrank);
+      bool Run(int rank, int blocksize);
       ~Analysis();
     };
   }

@@ -19,6 +19,7 @@ namespace global {
   static const int END_OF_OPTIONS=-1;
   static const int MAX_LENGTH_MARKER_NAME=30;
   static const int MAX_LENGTH_STRING=100;
+  static const int MPIROOT=0;
   }
 //------------------------------------------------------------------------------
 // global functions
