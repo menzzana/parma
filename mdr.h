@@ -12,13 +12,16 @@
 //------------------------------------------------------------------------------
 using namespace std;
 //------------------------------------------------------------------------------
-//Namespace MDR for specific MDR related functionslity
-// Prior of running the variables...
-// permutations nindividuals nmarkers frommarker tomarker
-// .. and the arrays...
-// gendata phenotype marker
-// ...must be set
-// Then call Run(rank,blocksize) for calculations
+/*
+  Namespace MDR for specific MDR related functionslity
+  Prior of running the variables...
+  permutations nindividuals nmarkers
+  .. and the arrays...
+  gendata phenotype marker
+  ...must be set
+  Do use function createDataBuffers() on each process
+  Then call Run(rank,blocksize) for calculations
+*/
 //------------------------------------------------------------------------------
 namespace MDR {
   static const unsigned char HOMOZYGOTE1=0;

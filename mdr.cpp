@@ -113,7 +113,7 @@ void Analysis::populateMDRParts() {
 //---------------------------------------------------------------------------
 void Analysis::randomShuffle(unsigned char *data) {
   for (int i1=0; i1<nindividuals; i1++)
-    swap(data[i1],data[(int)(ran1(0)*nindividuals)]);
+    swap(data[i1],data[(int)(global::ran1(0)*nindividuals)]);
   }
 //---------------------------------------------------------------------------
 int Analysis::getAlleleCombinations(int combinations) {
@@ -199,9 +199,7 @@ bool Analysis::Run(int rank, int blocksize) {
   try {
     for (ncombo=1; ncombo<=maxcombinations; ncombo++) {
       maxaccuracy=Result();
-      //for (idxmark=frommarker; idxmark<tomarker; idxmark++) {
       for (idxmark=rank; idxmark<nmarkers; idxmark+=blocksize) {
-        //if (!setInitialCombination(selectedmarkers[idxmark],ncombo))
         if (!setInitialCombination(idxmark,ncombo))
           continue;
         do {

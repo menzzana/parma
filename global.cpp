@@ -1,7 +1,6 @@
 #include "global.h"
-
 //---------------------------------------------------------------------------
-double ran1(long option) {
+double global::ran1(long option) {
   int j;
   long k;
   static long rseed=-123456789;

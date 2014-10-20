@@ -41,6 +41,7 @@ OPTIONS
 -file [file]			The [file] that should contain the genetic data
 -mfile [file]			The [file] containing the markers to be analyzed
 									If not included all markers will be analyzed
+									Markers in this file should be ordered in one marker per line with no header
 -pheno [value]		Which phenotype [value] should be treated as cases
 -comb [value]			Max number of marker combinations tested
 -dtype [value]		Input data format
