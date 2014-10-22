@@ -73,17 +73,17 @@ int main(int argc, char **argv) {
             markerfilename=optarg;
             break;
           case 's':
-            global::ran1(atol(optarg));
+            RND::sran1(-atol(optarg));
             break;
           case 't':
             phenoname=optarg;
             break;
           case 'd':
             switch(atoi(optarg)) {
-              case Loader::STD: // Data format Example Loader class
+              case Loader::STD:
                 mydata=new ExampleLoader();
                 break;
-              case Loader::DB: // Data format DB schizophrenia class
+              case Loader::HZDB:
                 break;
               }
             break;
@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
                           MPI_UNSIGNED_CHAR,global::MPIROOT);
     MPI::COMM_WORLD.Bcast(&myanalysis->marker[0][0],myanalysis->nmarkers*global::MAX_LENGTH_MARKER_NAME,
                           MPI_CHAR,global::MPIROOT);
-    if (!myanalysis->Run(mpirank,((float)myanalysis->nmarkers-0.5)/(float)mpisize+1))
+    if (!myanalysis->Run(mpirank,mpisize))
       throw runtime_error("Cannot analyse data");
     exitvalue=EXIT_SUCCESS;
     }

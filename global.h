@@ -19,6 +19,9 @@ namespace global {
   static const int END_OF_OPTIONS=-1;
   static const int MAX_LENGTH_MARKER_NAME=30;
   static const int MPIROOT=0;
+  }
+//------------------------------------------------------------------------------
+namespace RND {
   #define IA 16807
   #define IM 2147483647
   #define AM (1.0/IM)
@@ -28,10 +31,10 @@ namespace global {
   #define NDIV (1+(IM-1)/NTAB)
   #define EPS 1.2e-7
   #define RNMX (1.0-EPS)
-//------------------------------------------------------------------------------
-// global functions
-//------------------------------------------------------------------------------
-  double ran1(long option);
+  static long rseed=-123456789;
+
+  void sran1(long rseed);
+  double ran1();
   }
 //------------------------------------------------------------------------------
 #endif // GLOBAL_H

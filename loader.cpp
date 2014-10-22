@@ -42,6 +42,8 @@ bool ExampleLoader::loadFile(string filename, string phenoname, MDR::Analysis *a
 
   try {
     fpr.open(filename.c_str());
+    if (!fpr.good())
+      return false;
     getline(fpr,fstr);
     for (idxmark=0; idxmark<fstr.length(); idxmark++)
       if (fstr[idxmark]==delimiter)

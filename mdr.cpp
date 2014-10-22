@@ -42,9 +42,16 @@ void Result::copy(Result result) {
   }
 //---------------------------------------------------------------------------
 void Result::testBestCombination(Result result, int npermutations) {
-  if ((result.test.nnegpermutations>test.nnegpermutations && npermutations>0) ||
-      (result.test.accuracy>test.accuracy && npermutations==0))
-    copy(result);
+  if (npermutations>0) {
+    if (result.test.nnegpermutations<test.nnegpermutations)
+      return;
+    if (result.test.nnegpermutations==test.nnegpermutations && result.test.accuracy<test.accuracy)
+      return;
+    }
+  else
+    if (result.test.accuracy<test.accuracy || result.test.accuracy==test.accuracy)
+      return;
+  copy(result);
   }
 //---------------------------------------------------------------------------
 void Result::print(char **marker,int npermutations) {
@@ -113,7 +120,7 @@ void Analysis::populateMDRParts() {
 //---------------------------------------------------------------------------
 void Analysis::randomShuffle(unsigned char *data) {
   for (int i1=0; i1<nindividuals; i1++)
-    swap(data[i1],data[(int)(global::ran1(0)*nindividuals)]);
+    swap(data[i1],data[(int)(RND::ran1()*nindividuals)]);
   }
 //---------------------------------------------------------------------------
 int Analysis::getAlleleCombinations(int combinations) {
@@ -204,7 +211,6 @@ bool Analysis::Run(int rank, int blocksize) {
           continue;
         do {
           origaccuracy=analyseAlleles(phenotype,ncombo);
-          permaccuracy=Result();
           for (int i1=0; i1<npermutations; i1++) {
             permaccuracy=analyseAlleles(permpheno[i1],ncombo);
             if (permaccuracy.train.accuracy<origaccuracy.train.accuracy)

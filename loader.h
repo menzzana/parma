@@ -17,8 +17,9 @@ class Loader {
   public:
     static const char delimiter='\t';
     static const unsigned char ASCII0=48;
-    static const int STD=1;
-    static const int DB=2;
+    static const int STD=1;               // Data format Example Loader class
+    static const int HZDB=2;              // Data format DB schizophrenia class
+    static const int BED=3;               // Data format for BED plink files
     int nselmarkers;
     char **selmarker;
 

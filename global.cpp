@@ -1,15 +1,17 @@
 #include "global.h"
 //---------------------------------------------------------------------------
-double global::ran1(long option) {
+void RND::sran1(long seedvalue) {
+  // Initialize with negative number
+  rseed=seedvalue;
+  }
+//---------------------------------------------------------------------------
+double RND::ran1() {
   int j;
   long k;
-  static long rseed=-123456789;
   static long iy=0;
   static long iv[NTAB];
   double temp;
 
-  if (option!=0)
-    rseed=option;
   if (rseed<=0 || !iy) {
     if (-rseed<1)
       rseed=1;
