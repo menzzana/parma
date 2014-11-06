@@ -36,6 +36,18 @@ static struct option long_options[]={
   {"cpvalue",required_argument,0,'u'},
   {0,0,0,0}
   };
+static const int NRESULTS=3;
+struct process_results {
+  double negpermutations;
+  double accuracy;
+  int rank;
+  };
+MPI_Datatype process_results_type[NRESULTS]={
+  MPI_DOUBLE,MPI_DOUBLE,MPI_INT
+  };
+int process_results_block[NRESULTS]={
+  1,1,1
+  };
 Loader *mydata;
 MDR::Analysis *myanalysis;
 //------------------------------------------------------------------------------
@@ -44,20 +56,47 @@ void cleanUp() {
   delete myanalysis;
   }
 //------------------------------------------------------------------------------
+void mpi_mymax(process_results *in, process_results *inout, int *len, MPI_Datatype *type) {
+  if (in->negpermutations!=inout->negpermutations) {
+    if (in->negpermutations>inout->negpermutations) {
+      inout->negpermutations=in->negpermutations;
+      inout->accuracy=in->accuracy;
+      inout->rank=in->rank;
+      }
+    return;
+    }
+  if (in->accuracy>inout->accuracy) {
+    inout->accuracy=in->accuracy;
+    inout->rank=in->rank;
+    }
+  }
+//------------------------------------------------------------------------------
 int main(int argc, char **argv) {
   string filename,phenoname, markerfilename;
   int optionvalue,mpirank,mpisize,maxcombinations,optionindex,exitvalue;
+  long randomseed;
+  MPI_Aint process_results_disp[NRESULTS];
+  MPI_Datatype mydatatype;
+  MPI_Op myoperation;
+  process_results bestresults,maxresults;
 
-  MPI::Init(argc,argv);
-  MPI::COMM_WORLD.Set_errhandler(MPI::ERRORS_THROW_EXCEPTIONS);
   try {
+    if (MPI_Init(&argc,&argv)!=MPI_SUCCESS)
+      throw runtime_error("Cannot init MPI");
+    MPI_Comm_rank(MPI_COMM_WORLD,&mpirank);
+    MPI_Comm_size(MPI_COMM_WORLD,&mpisize);
+    process_results_disp[0]=0;
+    process_results_disp[1]=sizeof(double);
+    process_results_disp[2]=2*sizeof(double);
+    MPI_Type_create_struct(NRESULTS,process_results_block,process_results_disp,process_results_type,&mydatatype);
+    MPI_Type_commit(&mydatatype);
+    MPI_Op_create((MPI_User_function *)mpi_mymax, true, &myoperation);
     myanalysis=new MDR::Analysis();
     markerfilename="";
-    mpisize=MPI::COMM_WORLD.Get_size();
-    mpirank=MPI::COMM_WORLD.Get_rank();
+    maxcombinations=MDR::MAX_MARKER_COMBINATIONS;
+    randomseed=0;
     if (mpirank==global::MPIROOT) {
       printVersion();
-      maxcombinations=MDR::MAX_MARKER_COMBINATIONS;
       while ((optionvalue=getopt_long_only(argc,argv,"f:p:m:s:t:d:c:",long_options,&optionindex))!=global::END_OF_OPTIONS)
         switch (optionvalue) {
           case 'f':
@@ -67,13 +106,13 @@ int main(int argc, char **argv) {
             myanalysis->npermutations=atoi(optarg);
             break;
           case 'c':
-            myanalysis->maxcombinations=atoi(optarg);
+            maxcombinations=atoi(optarg);
             break;
           case 'm':
             markerfilename=optarg;
             break;
           case 's':
-            RND::sran1(-atol(optarg));
+            randomseed=-atol(optarg);
             break;
           case 't':
             phenoname=optarg;
@@ -100,29 +139,51 @@ int main(int argc, char **argv) {
           throw runtime_error("Cannot load markers from file: "+markerfilename);
       if (!mydata->loadFile(filename, phenoname, myanalysis))
         throw runtime_error("Cannot load data file: "+filename);
+      MDR::Result::printHeader(myanalysis->npermutations>0);
       }
-    MPI::COMM_WORLD.Bcast(&myanalysis->nmarkers,1,MPI_INT,global::MPIROOT);
-    MPI::COMM_WORLD.Bcast(&myanalysis->nindividuals,1,MPI_INT,global::MPIROOT);
+    if (MPI_Bcast(&myanalysis->npermutations,1,MPI_INT,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
+      throw runtime_error("Cannot broadcast permutations");
+    if (MPI_Bcast(&maxcombinations,1,MPI_INT,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
+      throw runtime_error("Cannot broadcast combinations");
+    if (MPI_Bcast(&myanalysis->nmarkers,1,MPI_INT,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
+      throw runtime_error("Cannot broadcast number of markers");
+    if (MPI_Bcast(&myanalysis->nindividuals,1,MPI_INT,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
+      throw runtime_error("Cannot broadcast individuals");
+    if (MPI_Bcast(&randomseed,1,MPI_LONG,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
+      throw runtime_error("Cannot broadcast random seed");
+    if (MPI_Bcast(&myanalysis->cutpvalue,1,MPI_DOUBLE,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
+      throw runtime_error("Cannot broadcast cutoff p-value");
     myanalysis->createDataBuffers(mpirank!=global::MPIROOT);
-    MPI::COMM_WORLD.Bcast(&myanalysis->phenotype[0],myanalysis->nindividuals,MPI_UNSIGNED_CHAR,global::MPIROOT);
-    MPI::COMM_WORLD.Bcast(&myanalysis->gendata[0][0],myanalysis->nmarkers*myanalysis->nindividuals,
-                          MPI_UNSIGNED_CHAR,global::MPIROOT);
-    MPI::COMM_WORLD.Bcast(&myanalysis->marker[0][0],myanalysis->nmarkers*global::MAX_LENGTH_MARKER_NAME,
-                          MPI_CHAR,global::MPIROOT);
-    if (!myanalysis->Run(mpirank,mpisize))
-      throw runtime_error("Cannot analyse data");
+    if (MPI_Bcast(&myanalysis->phenotype[0],myanalysis->nindividuals,
+                  MPI_UNSIGNED_CHAR,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
+      throw runtime_error("Cannot broadcast phenotype vector");
+    if (MPI_Bcast(&myanalysis->gendata[0][0],myanalysis->nmarkers*myanalysis->nindividuals,
+                  MPI_UNSIGNED_CHAR,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
+      throw runtime_error("Cannot broadcast genetic data");
+    if (MPI_Bcast(&myanalysis->marker[0][0],myanalysis->nmarkers*global::MAX_LENGTH_MARKER_NAME,
+                  MPI_CHAR,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
+      throw runtime_error("Cannot broadcast marker names");
+    RND::sran1(randomseed);
+    myanalysis->setInitialArrays();
+    for (int ncombo=1; ncombo<=maxcombinations; ncombo++) {
+      if (!myanalysis->Run(mpirank,mpisize,ncombo))
+        throw runtime_error("Cannot analyse data");
+      bestresults.negpermutations=myanalysis->maxaccuracy.test.nnegpermutations;
+      bestresults.accuracy=myanalysis->maxaccuracy.test.accuracy;
+      bestresults.rank=mpirank;
+      if (MPI_Allreduce(&bestresults,&maxresults,1,mydatatype,myoperation,MPI_COMM_WORLD)!=MPI_SUCCESS)
+        throw runtime_error("Cannot reduce max results from all processes");
+      if (maxresults.rank==mpirank)
+        myanalysis->printBestResult();
+      }
     exitvalue=EXIT_SUCCESS;
-    }
-  catch (MPI::Exception e) {
-    cerr << "MPI ERROR: " << e.Get_error_code() << " - " << e.Get_error_string() << endl;
-    exitvalue=EXIT_FAILURE;
     }
   catch(exception &e) {
     cerr << e.what() << endl;
     exitvalue=EXIT_FAILURE;
     }
   cleanUp();
-  MPI::Finalize();
+  MPI_Finalize();
   exit(exitvalue);
   }
 //------------------------------------------------------------------------------

@@ -2,7 +2,8 @@
 //---------------------------------------------------------------------------
 void RND::sran1(long seedvalue) {
   // Initialize with negative number
-  rseed=seedvalue;
+  if (rseed<0)
+    rseed=seedvalue;
   }
 //---------------------------------------------------------------------------
 double RND::ran1() {

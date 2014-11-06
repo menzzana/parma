@@ -41,32 +41,36 @@ void Result::copy(Result result) {
   test.copy(result.test);
   }
 //---------------------------------------------------------------------------
-void Result::testBestCombination(Result result, int npermutations) {
-  if (npermutations>0) {
-    if (result.test.nnegpermutations<test.nnegpermutations)
-      return;
-    if (result.test.nnegpermutations==test.nnegpermutations && result.test.accuracy<test.accuracy)
-      return;
-    }
-  else
-    if (result.test.accuracy<test.accuracy || result.test.accuracy==test.accuracy)
-      return;
-  copy(result);
+bool Result::testBestCombination(double nnegpermutations1, double nnegpermutations2,
+                                 double accuracy1, double accuracy2) {
+  if (nnegpermutations1!=nnegpermutations2)
+    return nnegpermutations1<nnegpermutations2;
+  return accuracy1<accuracy2;
   }
 //---------------------------------------------------------------------------
-void Result::print(char **marker,int npermutations) {
-  static bool printed=false;
-
-  if (!printed)
-    cout << "Markers\tTrain\tTest\tTrain p-value\tTest p-value" << endl;
-  printed=true;
+void Result::testBestCombination(Result result) {
+  if (testBestCombination(test.nnegpermutations,result.test.nnegpermutations,
+                          test.accuracy,result.test.accuracy))
+    copy(result);
+  }
+//---------------------------------------------------------------------------
+void Result::printHeader(bool ispermutation) {
+  cout << "Markers"<< delimiter << "Train"<< delimiter << "Test"<< delimiter;
+  if (ispermutation)
+    cout << "Train p-value"<< delimiter << "Test p-value"<< delimiter;
+  cout << "Best value" << endl;
+  }
+//---------------------------------------------------------------------------
+void Result::print(char **marker,int npermutations, bool highest) {
   for (int i1=0; i1<combinations; i1++)
     cout << (i1==0?"":",")<<marker[markercombo[i1]];
-  cout  << "\t" << train.accuracy << "\t" << test.accuracy;
+  cout  << delimiter << train.accuracy << delimiter << test.accuracy;
   if (npermutations>0) {
-    cout << "\t" << train.getPvaluePermutations(npermutations);
-    cout << "\t" << test.getPvaluePermutations(npermutations);
+    cout << delimiter << train.getPvaluePermutations(npermutations);
+    cout << delimiter << test.getPvaluePermutations(npermutations);
     }
+  if (highest)
+    cout << delimiter << "*";
   cout << endl;
   }
 //---------------------------------------------------------------------------
@@ -198,41 +202,40 @@ Result Analysis::analyseAlleles(unsigned char *vpheno, int combinations) {
   return accres;
   }
 //---------------------------------------------------------------------------
-bool Analysis::Run(int rank, int blocksize) {
-  int idxmark,ncombo;
-  Result origaccuracy,permaccuracy,maxaccuracy;
+bool Analysis::Run(int rank, int blocksize, int combination) {
+  int idxmark;
+  Result origaccuracy,permaccuracy;
 
-  setInitialArrays();
   try {
-    for (ncombo=1; ncombo<=maxcombinations; ncombo++) {
-      maxaccuracy=Result();
-      for (idxmark=rank; idxmark<nmarkers; idxmark+=blocksize) {
-        if (!setInitialCombination(idxmark,ncombo))
-          continue;
-        do {
-          origaccuracy=analyseAlleles(phenotype,ncombo);
-          for (int i1=0; i1<npermutations; i1++) {
-            permaccuracy=analyseAlleles(permpheno[i1],ncombo);
-            if (permaccuracy.train.accuracy<origaccuracy.train.accuracy)
-              origaccuracy.train.nnegpermutations++;
-            if (permaccuracy.test.accuracy<origaccuracy.test.accuracy)
-              origaccuracy.test.nnegpermutations++;
-            }
-          if (origaccuracy.test.getPvaluePermutations(npermutations)<=cutpvalue)
-            origaccuracy.print(marker,npermutations);
-          if (cutpvalue==NO_CUTOFF)
-            maxaccuracy.testBestCombination(origaccuracy,npermutations);
-          } while (increaseCombination(1,ncombo));
-        }
-      if (cutpvalue==NO_CUTOFF)
-        maxaccuracy.print(marker,npermutations);
+    maxaccuracy=Result();
+    for (idxmark=rank; idxmark<nmarkers; idxmark+=blocksize) {
+      if (!setInitialCombination(idxmark,combination))
+        continue;
+      do {
+        origaccuracy=analyseAlleles(phenotype,combination);
+        for (int i1=0; i1<npermutations; i1++) {
+          permaccuracy=analyseAlleles(permpheno[i1],combination);
+          if (permaccuracy.train.accuracy<origaccuracy.train.accuracy)
+            origaccuracy.train.nnegpermutations++;
+          if (permaccuracy.test.accuracy<origaccuracy.test.accuracy)
+            origaccuracy.test.nnegpermutations++;
+          }
+        if (origaccuracy.test.getPvaluePermutations(npermutations)<=cutpvalue)
+          origaccuracy.print(marker,npermutations,false);
+        maxaccuracy.testBestCombination(origaccuracy);
+        } while (increaseCombination(1,combination));
       }
+
     return true;
     }
   catch(exception &e) {
     cerr << e.what() << endl;
     return false;
     }
+  }
+//---------------------------------------------------------------------------
+void Analysis::printBestResult() {
+  maxaccuracy.print(marker,npermutations,true);
   }
 //---------------------------------------------------------------------------
 Analysis::~Analysis() {

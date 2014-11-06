@@ -39,8 +39,8 @@ namespace MDR {
 //------------------------------------------------------------------------------
   class SummedData {
     public:
-      float tp,fp,tn,fn;
-      float accuracy,nnegpermutations;
+      double tp,fp,tn,fn;
+      double accuracy,nnegpermutations;
 
       SummedData();
       void copy(SummedData summeddata);
@@ -50,12 +50,17 @@ namespace MDR {
 //------------------------------------------------------------------------------
   class Result {
     public:
-      Result();
-      void copy(Result result);
-      void testBestCombination(Result result, int npermutations);
-      void print(char **marker, int npermutations);
+      static const char delimiter='\t';
       int markercombo[MAX_MARKER_COMBINATIONS],combinations;
       SummedData train,test;
+
+      Result();
+      void copy(Result result);
+      static bool testBestCombination(double nnegpermutations1, double nnegpermutations2,
+                                       double accuracy1, double accuracy2);
+      void testBestCombination(Result result);
+      static void printHeader(bool ispermutation);
+      void print(char **marker, int npermutations, bool highest);
     };
 //------------------------------------------------------------------------------
   class Analysis {
@@ -66,7 +71,6 @@ namespace MDR {
       int mdrsumres[PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS];
 
       void populateMDRParts();
-      void setInitialArrays();
       void randomShuffle(unsigned char *data);
       int getAlleleCombinations(int combinations);
       bool setInitialCombination(int idxmark, int combinations);
@@ -76,14 +80,17 @@ namespace MDR {
       Result analyseAlleles(unsigned char *vpheno, int combinations);
 
     public:
-      int nindividuals,nmarkers,npermutations,maxcombinations;
+      int nindividuals,nmarkers,npermutations;
       unsigned char **gendata,*phenotype;
       double cutpvalue;
       char **marker;
+      Result maxaccuracy;
 
       Analysis();
+      void setInitialArrays();
       void createDataBuffers(bool initthisrank);
-      bool Run(int rank, int blocksize);
+      bool Run(int rank, int blocksize, int combination);
+      void printBestResult();
       ~Analysis();
     };
   }
