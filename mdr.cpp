@@ -4,7 +4,7 @@ using namespace MDR;
 //---------------------------------------------------------------------------
 SummedData::SummedData() {
   tp=tn=fp=fn=0;
-  accuracy=nnegpermutations=0;
+  calc.accuracy=calc.nnegpermutations=0;
   }
 //---------------------------------------------------------------------------
 void SummedData::copy(SummedData summeddata) {
@@ -12,8 +12,8 @@ void SummedData::copy(SummedData summeddata) {
   tn=summeddata.tn;
   fp=summeddata.fp;
   fn=summeddata.fn;
-  accuracy=summeddata.accuracy;
-  nnegpermutations=summeddata.nnegpermutations;
+  calc.accuracy=summeddata.calc.accuracy;
+  calc.nnegpermutations=summeddata.calc.nnegpermutations;
   }
 //---------------------------------------------------------------------------
 void SummedData::setAccuracy() {
@@ -21,23 +21,21 @@ void SummedData::setAccuracy() {
 
   sens=(tp+fn)==0?0:tp/(tp+fn);
   spec=(fp+tn)==0?0:tn/(fp+tn);
-  accuracy=(sens+spec)/2;
+  calc.accuracy=(sens+spec)/2;
   }
 //---------------------------------------------------------------------------
 double SummedData::getPvaluePermutations(int npermutations) {
-  return (npermutations-nnegpermutations)/(double)(npermutations==0?1:npermutations);
+  return (npermutations-calc.nnegpermutations)/(double)(npermutations==0?1:npermutations);
   }
 //---------------------------------------------------------------------------
-bool SummedData::testBestCombination(double nnegpermutations1, double nnegpermutations2,
-                                 double accuracy1, double accuracy2) {
-  if (nnegpermutations1!=nnegpermutations2)
-    return nnegpermutations1<nnegpermutations2;
-  return accuracy1<accuracy2;
+bool SummedData::testBestCombination(Calculated calc1, Calculated calc2) {
+  if (calc1.nnegpermutations!=calc2.nnegpermutations)
+    return calc1.nnegpermutations<calc2.nnegpermutations;
+  return calc1.accuracy<calc2.accuracy;
   }
 //---------------------------------------------------------------------------
 void SummedData::procTestBestCombination(Calculated *in, Calculated *inout, int *len, MPI_Datatype *type) {
-  if (testBestCombination(inout->nnegpermutations,in->nnegpermutations,
-                          inout->accuracy,in->accuracy)) {
+  if (testBestCombination(*inout,*in)) {
     inout->nnegpermutations=in->nnegpermutations;
     inout->accuracy=in->accuracy;
     inout->rank=in->rank;
@@ -58,8 +56,7 @@ void Result::copy(Result result) {
   }
 //---------------------------------------------------------------------------
 void Result::testBestCombination(Result result) {
-  if (test.testBestCombination(test.nnegpermutations,result.test.nnegpermutations,
-                          test.accuracy,result.test.accuracy))
+  if (test.testBestCombination(test.calc,result.test.calc))
     copy(result);
   }
 //---------------------------------------------------------------------------
@@ -73,7 +70,7 @@ void Result::printHeader(bool ispermutation) {
 void Result::print(char **marker,int npermutations, bool highest) {
   for (int i1=0; i1<combinations; i1++)
     cout << (i1==0?"":",")<<marker[markercombo[i1]];
-  cout  << delimiter << train.accuracy << delimiter << test.accuracy;
+  cout  << delimiter << train.calc.accuracy << delimiter << test.calc.accuracy;
   if (npermutations>0) {
     cout << delimiter << train.getPvaluePermutations(npermutations);
     cout << delimiter << test.getPvaluePermutations(npermutations);
@@ -224,10 +221,10 @@ bool Analysis::Run(int rank, int blocksize, int combination) {
         origaccuracy=analyseAlleles(phenotype,combination);
         for (int i1=0; i1<npermutations; i1++) {
           permaccuracy=analyseAlleles(permpheno[i1],combination);
-          if (permaccuracy.train.accuracy<origaccuracy.train.accuracy)
-            origaccuracy.train.nnegpermutations++;
-          if (permaccuracy.test.accuracy<origaccuracy.test.accuracy)
-            origaccuracy.test.nnegpermutations++;
+          if (permaccuracy.train.calc.accuracy<origaccuracy.train.calc.accuracy)
+            origaccuracy.train.calc.nnegpermutations++;
+          if (permaccuracy.test.calc.accuracy<origaccuracy.test.calc.accuracy)
+            origaccuracy.test.calc.nnegpermutations++;
           }
         if (origaccuracy.test.getPvaluePermutations(npermutations)<=cutpvalue)
           origaccuracy.print(marker,npermutations,false);

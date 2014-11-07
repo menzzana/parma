@@ -40,7 +40,6 @@ namespace MDR {
   class SummedData {
     public:
       double tp,fp,tn,fn;
-      double nnegpermutations,accuracy;
       struct Calculated {
         double nnegpermutations;
         double accuracy;
@@ -51,8 +50,7 @@ namespace MDR {
       void copy(SummedData summeddata);
       void setAccuracy();
       double getPvaluePermutations(int npermutations);
-      static bool testBestCombination(double nnegpermutations1, double nnegpermutations2,
-                                       double accuracy1, double accuracy2);
+      static bool testBestCombination(Calculated calc1, Calculated calc2);
       static void procTestBestCombination(Calculated *in, Calculated *inout, int *len, MPI_Datatype *type);
     };
 //------------------------------------------------------------------------------

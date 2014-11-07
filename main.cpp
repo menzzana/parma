@@ -47,8 +47,8 @@ int main(int argc, char **argv) {
   int optionvalue,mpirank,mpisize,maxcombinations,optionindex,exitvalue;
   long randomseed;
   MPI_Datatype MPI_2DOUBLE_INT;
-  MPI_Op MPI_BESTPVALUE;
-  MDR::SummedData::Calculated procresult,maxresult;
+  MPI_Op MPI_BESTCOMBINATION;
+  MDR::SummedData::Calculated maxresult;
 
   try {
     if (MPI_Init(&argc,&argv)!=MPI_SUCCESS)
@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
     MPI_Type_create_struct(global::LENGTH_2DOUBLE_INT,global::BLOCK_2DOUBLE_INT,global::DISP_2DOUBLE_INT,
                            global::TYPE_2DOUBLE_INT,&MPI_2DOUBLE_INT);
     MPI_Type_commit(&MPI_2DOUBLE_INT);
-    MPI_Op_create((MPI_User_function *)MDR::SummedData::procTestBestCombination, true, &MPI_BESTPVALUE);
+    MPI_Op_create((MPI_User_function *)MDR::SummedData::procTestBestCombination, true, &MPI_BESTCOMBINATION);
     myanalysis=new MDR::Analysis();
     markerfilename="";
     maxcombinations=MDR::MAX_MARKER_COMBINATIONS;
@@ -136,15 +136,9 @@ int main(int argc, char **argv) {
     for (int ncombo=1; ncombo<=maxcombinations; ncombo++) {
       if (!myanalysis->Run(mpirank,mpisize,ncombo))
         throw runtime_error("Cannot analyse data");
-
       myanalysis->maxaccuracy.test.calc.rank=mpirank;
-
-      procresult.nnegpermutations=myanalysis->maxaccuracy.test.nnegpermutations;
-      procresult.accuracy=myanalysis->maxaccuracy.test.accuracy;
-      procresult.rank=mpirank;
-
-
-      if (MPI_Allreduce(&procresult,&maxresult,1,MPI_2DOUBLE_INT,MPI_BESTPVALUE,MPI_COMM_WORLD)!=MPI_SUCCESS)
+      if (MPI_Allreduce(&myanalysis->maxaccuracy.test.calc,&maxresult,1,
+                        MPI_2DOUBLE_INT,MPI_BESTCOMBINATION,MPI_COMM_WORLD)!=MPI_SUCCESS)
         throw runtime_error("Cannot reduce max results from all processes");
       if (maxresult.rank==mpirank)
         myanalysis->printBestResult();
