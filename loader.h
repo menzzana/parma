@@ -11,8 +11,6 @@
 #include "global.h"
 #include "mdr.h"
 //------------------------------------------------------------------------------
-using namespace std;
-//------------------------------------------------------------------------------
 class Loader {
   public:
     static const char delimiter='\t';

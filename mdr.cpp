@@ -28,6 +28,22 @@ double SummedData::getPvaluePermutations(int npermutations) {
   return (npermutations-nnegpermutations)/(double)(npermutations==0?1:npermutations);
   }
 //---------------------------------------------------------------------------
+bool SummedData::testBestCombination(double nnegpermutations1, double nnegpermutations2,
+                                 double accuracy1, double accuracy2) {
+  if (nnegpermutations1!=nnegpermutations2)
+    return nnegpermutations1<nnegpermutations2;
+  return accuracy1<accuracy2;
+  }
+//---------------------------------------------------------------------------
+void SummedData::procTestBestCombination(Calculated *in, Calculated *inout, int *len, MPI_Datatype *type) {
+  if (testBestCombination(inout->nnegpermutations,in->nnegpermutations,
+                          inout->accuracy,in->accuracy)) {
+    inout->nnegpermutations=in->nnegpermutations;
+    inout->accuracy=in->accuracy;
+    inout->rank=in->rank;
+    }
+  }
+//---------------------------------------------------------------------------
 Result::Result() {
   combinations=0;
   train=SummedData();
@@ -41,15 +57,8 @@ void Result::copy(Result result) {
   test.copy(result.test);
   }
 //---------------------------------------------------------------------------
-bool Result::testBestCombination(double nnegpermutations1, double nnegpermutations2,
-                                 double accuracy1, double accuracy2) {
-  if (nnegpermutations1!=nnegpermutations2)
-    return nnegpermutations1<nnegpermutations2;
-  return accuracy1<accuracy2;
-  }
-//---------------------------------------------------------------------------
 void Result::testBestCombination(Result result) {
-  if (testBestCombination(test.nnegpermutations,result.test.nnegpermutations,
+  if (test.testBestCombination(test.nnegpermutations,result.test.nnegpermutations,
                           test.accuracy,result.test.accuracy))
     copy(result);
   }

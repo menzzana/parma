@@ -13,13 +13,13 @@
 using namespace std;
 //------------------------------------------------------------------------------
 /*
-  Namespace MDR for specific MDR related functionslity
+  Namespace MDR for specific MDR related functionality
   Prior of running the variables...
   permutations nindividuals nmarkers
   .. and the arrays...
   gendata phenotype marker
   ...must be set
-  Do use function createDataBuffers() on each process
+  Do use function createDataBuffers() and setInitialArrays() on each process
   Then call Run(rank,blocksize) for calculations
 */
 //------------------------------------------------------------------------------
@@ -40,12 +40,20 @@ namespace MDR {
   class SummedData {
     public:
       double tp,fp,tn,fn;
-      double accuracy,nnegpermutations;
+      double nnegpermutations,accuracy;
+      struct Calculated {
+        double nnegpermutations;
+        double accuracy;
+        int rank;
+        } calc;
 
       SummedData();
       void copy(SummedData summeddata);
       void setAccuracy();
       double getPvaluePermutations(int npermutations);
+      static bool testBestCombination(double nnegpermutations1, double nnegpermutations2,
+                                       double accuracy1, double accuracy2);
+      static void procTestBestCombination(Calculated *in, Calculated *inout, int *len, MPI_Datatype *type);
     };
 //------------------------------------------------------------------------------
   class Result {
@@ -56,8 +64,6 @@ namespace MDR {
 
       Result();
       void copy(Result result);
-      static bool testBestCombination(double nnegpermutations1, double nnegpermutations2,
-                                       double accuracy1, double accuracy2);
       void testBestCombination(Result result);
       static void printHeader(bool ispermutation);
       void print(char **marker, int npermutations, bool highest);

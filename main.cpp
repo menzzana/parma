@@ -23,8 +23,6 @@ see <http://www.gnu.org/licenses/>.
 #include "loader.h"
 #include <getopt.h>
 //------------------------------------------------------------------------------
-using namespace std;
-//------------------------------------------------------------------------------
 static struct option long_options[]={
   {"file",required_argument,0,'f'},
   {"perm",required_argument,0,'p'},
@@ -36,18 +34,6 @@ static struct option long_options[]={
   {"cpvalue",required_argument,0,'u'},
   {0,0,0,0}
   };
-static const int NRESULTS=3;
-struct process_results {
-  double negpermutations;
-  double accuracy;
-  int rank;
-  };
-MPI_Datatype process_results_type[NRESULTS]={
-  MPI_DOUBLE,MPI_DOUBLE,MPI_INT
-  };
-int process_results_block[NRESULTS]={
-  1,1,1
-  };
 Loader *mydata;
 MDR::Analysis *myanalysis;
 //------------------------------------------------------------------------------
@@ -56,41 +42,23 @@ void cleanUp() {
   delete myanalysis;
   }
 //------------------------------------------------------------------------------
-void mpi_mymax(process_results *in, process_results *inout, int *len, MPI_Datatype *type) {
-  if (in->negpermutations!=inout->negpermutations) {
-    if (in->negpermutations>inout->negpermutations) {
-      inout->negpermutations=in->negpermutations;
-      inout->accuracy=in->accuracy;
-      inout->rank=in->rank;
-      }
-    return;
-    }
-  if (in->accuracy>inout->accuracy) {
-    inout->accuracy=in->accuracy;
-    inout->rank=in->rank;
-    }
-  }
-//------------------------------------------------------------------------------
 int main(int argc, char **argv) {
   string filename,phenoname, markerfilename;
   int optionvalue,mpirank,mpisize,maxcombinations,optionindex,exitvalue;
   long randomseed;
-  MPI_Aint process_results_disp[NRESULTS];
-  MPI_Datatype mydatatype;
-  MPI_Op myoperation;
-  process_results bestresults,maxresults;
+  MPI_Datatype MPI_2DOUBLE_INT;
+  MPI_Op MPI_BESTPVALUE;
+  MDR::SummedData::Calculated procresult,maxresult;
 
   try {
     if (MPI_Init(&argc,&argv)!=MPI_SUCCESS)
       throw runtime_error("Cannot init MPI");
     MPI_Comm_rank(MPI_COMM_WORLD,&mpirank);
     MPI_Comm_size(MPI_COMM_WORLD,&mpisize);
-    process_results_disp[0]=0;
-    process_results_disp[1]=sizeof(double);
-    process_results_disp[2]=2*sizeof(double);
-    MPI_Type_create_struct(NRESULTS,process_results_block,process_results_disp,process_results_type,&mydatatype);
-    MPI_Type_commit(&mydatatype);
-    MPI_Op_create((MPI_User_function *)mpi_mymax, true, &myoperation);
+    MPI_Type_create_struct(global::LENGTH_2DOUBLE_INT,global::BLOCK_2DOUBLE_INT,global::DISP_2DOUBLE_INT,
+                           global::TYPE_2DOUBLE_INT,&MPI_2DOUBLE_INT);
+    MPI_Type_commit(&MPI_2DOUBLE_INT);
+    MPI_Op_create((MPI_User_function *)MDR::SummedData::procTestBestCombination, true, &MPI_BESTPVALUE);
     myanalysis=new MDR::Analysis();
     markerfilename="";
     maxcombinations=MDR::MAX_MARKER_COMBINATIONS;
@@ -168,12 +136,17 @@ int main(int argc, char **argv) {
     for (int ncombo=1; ncombo<=maxcombinations; ncombo++) {
       if (!myanalysis->Run(mpirank,mpisize,ncombo))
         throw runtime_error("Cannot analyse data");
-      bestresults.negpermutations=myanalysis->maxaccuracy.test.nnegpermutations;
-      bestresults.accuracy=myanalysis->maxaccuracy.test.accuracy;
-      bestresults.rank=mpirank;
-      if (MPI_Allreduce(&bestresults,&maxresults,1,mydatatype,myoperation,MPI_COMM_WORLD)!=MPI_SUCCESS)
+
+      myanalysis->maxaccuracy.test.calc.rank=mpirank;
+
+      procresult.nnegpermutations=myanalysis->maxaccuracy.test.nnegpermutations;
+      procresult.accuracy=myanalysis->maxaccuracy.test.accuracy;
+      procresult.rank=mpirank;
+
+
+      if (MPI_Allreduce(&procresult,&maxresult,1,MPI_2DOUBLE_INT,MPI_BESTPVALUE,MPI_COMM_WORLD)!=MPI_SUCCESS)
         throw runtime_error("Cannot reduce max results from all processes");
-      if (maxresults.rank==mpirank)
+      if (maxresult.rank==mpirank)
         myanalysis->printBestResult();
       }
     exitvalue=EXIT_SUCCESS;

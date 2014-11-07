@@ -13,12 +13,21 @@
 //------------------------------------------------------------------------------
 // global constants
 //------------------------------------------------------------------------------
-using namespace std;
-//------------------------------------------------------------------------------
 namespace global {
   static const int END_OF_OPTIONS=-1;
   static const int MAX_LENGTH_MARKER_NAME=30;
   static const int MPIROOT=0;
+
+  static const int LENGTH_2DOUBLE_INT=3;
+  static MPI_Datatype TYPE_2DOUBLE_INT[LENGTH_2DOUBLE_INT]={
+    MPI_DOUBLE,MPI_DOUBLE,MPI_INT
+    };
+  static int BLOCK_2DOUBLE_INT[LENGTH_2DOUBLE_INT]={
+    1,1,1
+    };
+  static MPI_Aint DISP_2DOUBLE_INT[LENGTH_2DOUBLE_INT]={
+    0,sizeof(double),2*sizeof(double)
+    };
   }
 //------------------------------------------------------------------------------
 namespace RND {
