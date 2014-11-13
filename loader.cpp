@@ -47,21 +47,21 @@ bool ExampleLoader::loadFile(string filename, string phenoname, MDR::Analysis *a
     getline(fpr,fstr);
     for (idxmark=0; idxmark<fstr.length(); idxmark++)
       if (fstr[idxmark]==delimiter)
-        analysis->nmarkers++;
-    for (analysis->nindividuals=0; getline(fpr,fstr); analysis->nindividuals++);
+        analysis->param.nmarkers++;
+    for (analysis->param.nindividuals=0; getline(fpr,fstr); analysis->param.nindividuals++);
     analysis->createDataBuffers(true);
     fpr.clear();
     fpr.seekg(0,ios_base::beg);
     getline(fpr,fstr);
-    for (idxmark=i1=0; idxmark<analysis->nmarkers; idxmark++) {
+    for (idxmark=i1=0; idxmark<analysis->param.nmarkers; idxmark++) {
       strncpy(analysis->marker[idxmark],fstr.substr(i1,fstr.find(delimiter,i1)-i1).c_str(),
               global::MAX_LENGTH_MARKER_NAME-1);
       i1=fstr.find(delimiter,i1)+1;
       }
-    for (idxind=0; idxind<analysis->nindividuals; idxind++) {
+    for (idxind=0; idxind<analysis->param.nindividuals; idxind++) {
       if (!getline(fpr,fstr))
         throw runtime_error("Unexpected End of file");
-      for (idxmark=i1=0; idxmark<analysis->nmarkers; idxmark++) {
+      for (idxmark=i1=0; idxmark<analysis->param.nmarkers; idxmark++) {
         analysis->gendata[idxind][idxmark]=fstr[i1]-ASCII0;
         i1=fstr.find(delimiter,i1)+1;
         }

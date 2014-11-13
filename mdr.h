@@ -36,7 +36,7 @@ namespace MDR {
   // LIST_ALLELE_MARKER_COMBINATIONS=MAX_MARKER_COMBINATIONS^ALLELE_COMBINATIONS
   static const int LIST_ALLELE_MARKER_COMBINATIONS=10E6;
   static const double NO_CUTOFF=-1;
-//------------------------------------------------------------------------------
+  //------------------------------------------------------------------------------
   class SummedData {
     public:
       double tp,fp,tn,fn;
@@ -84,7 +84,11 @@ namespace MDR {
       Result analyseAlleles(unsigned char *vpheno, int combinations);
 
     public:
-      int nindividuals,nmarkers,npermutations;
+      struct Param {
+        int npermutations,maxcombinations,nmarkers,nindividuals;
+        long randomseed;
+        double cutpvalue;
+        } param;
       unsigned char **gendata,*phenotype;
       double cutpvalue;
       char **marker;

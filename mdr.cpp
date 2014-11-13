@@ -81,39 +81,44 @@ void Result::print(char **marker,int npermutations, bool highest) {
   }
 //---------------------------------------------------------------------------
 Analysis::Analysis() {
-  npermutations=nindividuals=nmarkers=0;
   cutpvalue=NO_CUTOFF;
   gendata=NULL;
   phenotype=NULL;
   marker=NULL;
   permpheno=NULL;
   parts=NULL;
+  param.npermutations=0;
+  param.maxcombinations=MAX_MARKER_COMBINATIONS;
+  param.nmarkers=0;
+  param.nindividuals=0;
+  param.randomseed=0;
+  param.cutpvalue=NO_CUTOFF;
   }
 //---------------------------------------------------------------------------
 void Analysis::createDataBuffers(bool initthisrank) {
   if (!initthisrank)
     return;
-  phenotype=new unsigned char[nindividuals];
-  gendata=new unsigned char*[nindividuals];
-  gendata[0]=new unsigned char[nindividuals*nmarkers];
-  for (int i1=1; i1<nindividuals; i1++)
-    gendata[i1]=&gendata[0][i1*nmarkers];
-  marker=new char*[nmarkers];
-  marker[0]=new char[nmarkers*global::MAX_LENGTH_MARKER_NAME];
-  for (int i1=1; i1<nmarkers; i1++)
+  phenotype=new unsigned char[param.nindividuals];
+  gendata=new unsigned char*[param.nindividuals];
+  gendata[0]=new unsigned char[param.nindividuals*param.nmarkers];
+  for (int i1=1; i1<param.nindividuals; i1++)
+    gendata[i1]=&gendata[0][i1*param.nmarkers];
+  marker=new char*[param.nmarkers];
+  marker[0]=new char[param.nmarkers*global::MAX_LENGTH_MARKER_NAME];
+  for (int i1=1; i1<param.nmarkers; i1++)
     marker[i1]=&marker[0][i1*global::MAX_LENGTH_MARKER_NAME];
   }
 //---------------------------------------------------------------------------
 void Analysis::setInitialArrays() {
-  parts=new unsigned char[nindividuals];
+  parts=new unsigned char[param.nindividuals];
   populateMDRParts();
   randomShuffle(parts);
-  if (npermutations==0)
+  if (param.npermutations==0)
     return;
-  permpheno=new unsigned char*[npermutations];
-  for (int i1=0; i1<npermutations; i1++) {
-    permpheno[i1]=new unsigned char[nindividuals];
-    memcpy(permpheno[i1],phenotype,nindividuals);
+  permpheno=new unsigned char*[param.npermutations];
+  for (int i1=0; i1<param.npermutations; i1++) {
+    permpheno[i1]=new unsigned char[param.nindividuals];
+    memcpy(permpheno[i1],phenotype,param.nindividuals);
     randomShuffle(permpheno[i1]);
     }
   }
@@ -121,7 +126,7 @@ void Analysis::setInitialArrays() {
 void Analysis::populateMDRParts() {
   int i1,i2;
 
-  for (i1=i2=0; i1<nindividuals; i1++,i2++) {
+  for (i1=i2=0; i1<param.nindividuals; i1++,i2++) {
     if (i2==N_MDR_PARTS)
       i2=0;
     parts[i1]=i2;
@@ -129,8 +134,8 @@ void Analysis::populateMDRParts() {
   }
 //---------------------------------------------------------------------------
 void Analysis::randomShuffle(unsigned char *data) {
-  for (int i1=0; i1<nindividuals; i1++)
-    swap(data[i1],data[(int)(RND::ran1()*nindividuals)]);
+  for (int i1=0; i1<param.nindividuals; i1++)
+    swap(data[i1],data[(int)(RND::ran1()*param.nindividuals)]);
   }
 //---------------------------------------------------------------------------
 int Analysis::getAlleleCombinations(int combinations) {
@@ -138,7 +143,7 @@ int Analysis::getAlleleCombinations(int combinations) {
   }
 //---------------------------------------------------------------------------
 bool Analysis::setInitialCombination(int idxmark, int combinations) {
-  if (nmarkers<(combinations+idxmark))
+  if (param.nmarkers<(combinations+idxmark))
     return false;
   markercombo[0]=idxmark;
   for (int i1=1; i1<combinations; i1++)
@@ -159,7 +164,7 @@ bool Analysis::increaseCombination(int idxmarkcombo, int combinations) {
 //---------------------------------------------------------------------------
 bool Analysis::increaseMarker(int idxmarkcombo) {
   markercombo[idxmarkcombo]+=(markercombo[0]==(markercombo[idxmarkcombo]+1)?2:1);
-  return markercombo[idxmarkcombo]<nmarkers;
+  return markercombo[idxmarkcombo]<param.nmarkers;
   }
 //---------------------------------------------------------------------------
 void Analysis::clearMDRResults(int combinations) {
@@ -179,7 +184,7 @@ Result Analysis::analyseAlleles(unsigned char *vpheno, int combinations) {
   int idxmark,idxind,idxres,idxparts;
 
   clearMDRResults(combinations);
-  for (idxind=0; idxind<nindividuals; idxind++) {
+  for (idxind=0; idxind<param.nindividuals; idxind++) {
     idxres=0;
     for(idxmark=0; idxmark<combinations; idxmark++)
       idxres+=getAlleleCombinations(idxmark)*gendata[idxind][markercombo[idxmark]];
@@ -214,20 +219,20 @@ bool Analysis::Run(int rank, int blocksize, int combination) {
 
   try {
     maxaccuracy=Result();
-    for (idxmark=rank; idxmark<nmarkers; idxmark+=blocksize) {
+    for (idxmark=rank; idxmark<param.nmarkers; idxmark+=blocksize) {
       if (!setInitialCombination(idxmark,combination))
         continue;
       do {
         origaccuracy=analyseAlleles(phenotype,combination);
-        for (int i1=0; i1<npermutations; i1++) {
+        for (int i1=0; i1<param.npermutations; i1++) {
           permaccuracy=analyseAlleles(permpheno[i1],combination);
           if (permaccuracy.train.calc.accuracy<origaccuracy.train.calc.accuracy)
             origaccuracy.train.calc.nnegpermutations++;
           if (permaccuracy.test.calc.accuracy<origaccuracy.test.calc.accuracy)
             origaccuracy.test.calc.nnegpermutations++;
           }
-        if (origaccuracy.test.getPvaluePermutations(npermutations)<=cutpvalue)
-          origaccuracy.print(marker,npermutations,false);
+        if (origaccuracy.test.getPvaluePermutations(param.npermutations)<=param.cutpvalue)
+          origaccuracy.print(marker,param.npermutations,false);
         maxaccuracy.testBestCombination(origaccuracy);
         } while (increaseCombination(1,combination));
       }
@@ -241,11 +246,11 @@ bool Analysis::Run(int rank, int blocksize, int combination) {
   }
 //---------------------------------------------------------------------------
 void Analysis::printBestResult() {
-  maxaccuracy.print(marker,npermutations,true);
+  maxaccuracy.print(marker,param.npermutations,true);
   }
 //---------------------------------------------------------------------------
 Analysis::~Analysis() {
-  for (int i1=0; i1<npermutations; i1++)
+  for (int i1=0; i1<param.npermutations; i1++)
     delete permpheno[i1];
   delete permpheno;
   delete parts;
