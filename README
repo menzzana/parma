@@ -20,20 +20,27 @@ BUILDING (from source bundle)
 DEPENDENCIES
 C++ compiler
 cmake => 2.8
-MPI library
+MPI library. If not found a serial version of parma will be compiled
 
 In order to build just run...
 mkdir [BUILD DIR]
 cd [BUILD DIR]
-cmake ..
+cmake [SOURCE DIR]
 make
+
+In case you want to run parma serially, uncomment find_package(MPI)
+in CMakeLists.txt
 
 ***
 
 FILES
 
-main.c
-mdr.c
+CMakeLists.txt
+main.cpp
+mdr.cpp/.h
+global.cpp/.h
+loader.cpp/.h
+version_config.h.in
 
 OPTIONS
 -seed [value]			Set [value] as new seed for random calculations

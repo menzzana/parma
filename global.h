@@ -9,7 +9,10 @@
 #include <stdexcept>
 #include <iostream>
 #include <sstream>
-#include "mpi.h"
+
+#ifndef SERIAL
+  #include "mpi.h"
+#endif
 //------------------------------------------------------------------------------
 // global constants
 //------------------------------------------------------------------------------
@@ -17,28 +20,29 @@ namespace global {
   static const int END_OF_OPTIONS=-1;
   static const int MAX_LENGTH_MARKER_NAME=30;
   static const int MPIROOT=0;
-
-  static const int LENGTH_2DOUBLE_INT=3;
-  static MPI_Datatype TYPE_2DOUBLE_INT[LENGTH_2DOUBLE_INT]={
-    MPI_DOUBLE,MPI_DOUBLE,MPI_INT
-    };
-  static int BLOCK_2DOUBLE_INT[LENGTH_2DOUBLE_INT]={
-    1,1,1
-    };
-  static MPI_Aint DISP_2DOUBLE_INT[LENGTH_2DOUBLE_INT]={
-    0,sizeof(double),2*sizeof(double)
-    };
-  static const int LENGTH_4INT_LONG_DOUBLE=6;
-  static MPI_Datatype TYPE_4INT_LONG_DOUBLE[LENGTH_4INT_LONG_DOUBLE]={
-    MPI_INT,MPI_INT,MPI_INT,MPI_INT,MPI_LONG,MPI_DOUBLE
-    };
-  static int BLOCK_4INT_LONG_DOUBLE[LENGTH_4INT_LONG_DOUBLE]={
-    1,1,1,1,1,1
-    };
-  static MPI_Aint DISP_4INT_LONG_DOUBLE[LENGTH_4INT_LONG_DOUBLE]={
-    0,sizeof(int),2*sizeof(int),3*sizeof(int),4*sizeof(int),
-    4*sizeof(int)+sizeof(long)
-    };
+  #ifndef SERIAL
+    static const int LENGTH_2DOUBLE_INT=3;
+    static MPI_Datatype TYPE_2DOUBLE_INT[LENGTH_2DOUBLE_INT]={
+      MPI_DOUBLE,MPI_DOUBLE,MPI_INT
+      };
+    static int BLOCK_2DOUBLE_INT[LENGTH_2DOUBLE_INT]={
+      1,1,1
+      };
+    static MPI_Aint DISP_2DOUBLE_INT[LENGTH_2DOUBLE_INT]={
+      0,sizeof(double),2*sizeof(double)
+      };
+    static const int LENGTH_4INT_LONG_DOUBLE=6;
+    static MPI_Datatype TYPE_4INT_LONG_DOUBLE[LENGTH_4INT_LONG_DOUBLE]={
+      MPI_INT,MPI_INT,MPI_INT,MPI_INT,MPI_LONG,MPI_DOUBLE
+      };
+    static int BLOCK_4INT_LONG_DOUBLE[LENGTH_4INT_LONG_DOUBLE]={
+      1,1,1,1,1,1
+      };
+    static MPI_Aint DISP_4INT_LONG_DOUBLE[LENGTH_4INT_LONG_DOUBLE]={
+      0,sizeof(int),2*sizeof(int),3*sizeof(int),4*sizeof(int),
+      4*sizeof(int)+sizeof(long)
+      };
+  #endif
   }
 //------------------------------------------------------------------------------
 namespace RND {

@@ -15,6 +15,8 @@ configure_file( version_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/version_config.h
 
 ###############################################################################
 # Add mpi
+# if not found parma will be compiled for serial execution
+# Uncomment the find of MPI to compile and run parma serially
 ###############################################################################
 
 find_package(MPI)
@@ -22,6 +24,7 @@ if(MPI_FOUND)
   message(STATUS "Package MPI found.")
 else(MPI_FOUND)
   message(STATUS "The package MPI was not found.")
+  set(CMAKE_CXX_FLAGS "-DSERIAL")
 endif(MPI_FOUND)
 
 ###############################################################################

@@ -3,29 +3,28 @@
 using namespace MDR;
 //---------------------------------------------------------------------------
 SummedData::SummedData() {
-  tp=tn=fp=fn=0;
   calc.accuracy=calc.nnegpermutations=0;
+  tp=fp=tn=fn=0;
+  memset(partaccuracy,0,sizeof(double)*N_MDR_PARTS);
   }
 //---------------------------------------------------------------------------
-void SummedData::copy(SummedData summeddata) {
-  tp=summeddata.tp;
-  tn=summeddata.tn;
-  fp=summeddata.fp;
-  fn=summeddata.fn;
-  calc.accuracy=summeddata.calc.accuracy;
-  calc.nnegpermutations=summeddata.calc.nnegpermutations;
+void SummedData::clearPartData() {
+  tp=fp=tn=fn=0;
   }
 //---------------------------------------------------------------------------
-void SummedData::setAccuracy() {
+void SummedData::addAccuracy(int idxpart) {
   float sens,spec;
 
   sens=(tp+fn)==0?0:tp/(tp+fn);
   spec=(fp+tn)==0?0:tn/(fp+tn);
-  calc.accuracy=(sens+spec)/2;
+  calc.accuracy+=(sens+spec)/2;
+  partaccuracy[idxpart]=(sens+spec)/2;
   }
 //---------------------------------------------------------------------------
 double SummedData::getPvaluePermutations(int npermutations) {
-  return (npermutations-calc.nnegpermutations)/(double)(npermutations==0?1:npermutations);
+  return (N_MDR_PARTS*npermutations-calc.nnegpermutations)/
+      (double)(npermutations==0?1:npermutations)/
+      (double)N_MDR_PARTS;
   }
 //---------------------------------------------------------------------------
 bool SummedData::testBestCombination(Calculated calc1, Calculated calc2) {
@@ -34,13 +33,15 @@ bool SummedData::testBestCombination(Calculated calc1, Calculated calc2) {
   return calc1.accuracy<calc2.accuracy;
   }
 //---------------------------------------------------------------------------
-void SummedData::procTestBestCombination(Calculated *in, Calculated *inout, int *len, MPI_Datatype *type) {
-  if (testBestCombination(*inout,*in)) {
-    inout->nnegpermutations=in->nnegpermutations;
-    inout->accuracy=in->accuracy;
-    inout->rank=in->rank;
+#ifndef SERIAL
+  void SummedData::procTestBestCombination(Calculated *in, Calculated *inout, int *len, MPI_Datatype *type) {
+    if (testBestCombination(*inout,*in)) {
+      inout->nnegpermutations=in->nnegpermutations;
+      inout->accuracy=in->accuracy;
+      inout->rank=in->rank;
+      }
     }
-  }
+#endif
 //---------------------------------------------------------------------------
 Result::Result() {
   combinations=0;
@@ -51,11 +52,11 @@ Result::Result() {
 void Result::copy(Result result) {
   combinations=result.combinations;
   memcpy(markercombo,result.markercombo,sizeof(int)*combinations);
-  train.copy(result.train);
-  test.copy(result.test);
+  memcpy(&train,&result.train,sizeof(SummedData));
+  memcpy(&test,&result.test,sizeof(SummedData));
   }
 //---------------------------------------------------------------------------
-void Result::testBestCombination(Result result) {
+void Result::setBestCombination(Result result) {
   if (test.testBestCombination(test.calc,result.test.calc))
     copy(result);
   }
@@ -95,6 +96,12 @@ Analysis::Analysis() {
   param.cutpvalue=NO_CUTOFF;
   }
 //---------------------------------------------------------------------------
+void Analysis::createMasterDataBuffers(int nmarker, int nindividual) {
+  param.nmarkers=nmarker;
+  param.nindividuals=nindividual;
+  createDataBuffers(true);
+  }
+//---------------------------------------------------------------------------
 void Analysis::createDataBuffers(bool initthisrank) {
   if (!initthisrank)
     return;
@@ -103,6 +110,7 @@ void Analysis::createDataBuffers(bool initthisrank) {
   gendata[0]=new unsigned char[param.nindividuals*param.nmarkers];
   for (int i1=1; i1<param.nindividuals; i1++)
     gendata[i1]=&gendata[0][i1*param.nmarkers];
+  memset(&gendata[0][0],255,param.nindividuals*param.nmarkers);
   marker=new char*[param.nmarkers];
   marker[0]=new char[param.nmarkers*global::MAX_LENGTH_MARKER_NAME];
   for (int i1=1; i1<param.nmarkers; i1++)
@@ -179,9 +187,27 @@ void Analysis::clearMDRResults(int combinations) {
     }
   }
 //---------------------------------------------------------------------------
+void Analysis::removeNonGenotypeIndividuals() {
+  int idxindividual,idxnewindividual,idxmarker;
+
+  for (idxindividual=idxnewindividual=0; idxindividual<param.nindividuals; idxindividual++) {
+    phenotype[idxnewindividual]=phenotype[idxindividual];
+    for (idxmarker=0; idxmarker<param.nmarkers; idxmarker++) {
+      if (gendata[idxindividual][idxmarker]==255)
+        break;
+      gendata[idxnewindividual][idxmarker]=gendata[idxindividual][idxmarker];
+      }
+    if (idxmarker==param.nmarkers)
+      idxnewindividual++;
+    }
+  cerr << "Removed " << param.nindividuals-idxnewindividual << " individuals" << endl;
+  param.nindividuals=idxnewindividual;
+  }
+//---------------------------------------------------------------------------
 Result Analysis::analyseAlleles(unsigned char *vpheno, int combinations) {
   Result accres;
-  int idxmark,idxind,idxres,idxparts;
+  int idxmark,idxind,idxres,idxpart;
+  int traincase,traincontrol;
 
   clearMDRResults(combinations);
   for (idxind=0; idxind<param.nindividuals; idxind++) {
@@ -192,24 +218,32 @@ Result Analysis::analyseAlleles(unsigned char *vpheno, int combinations) {
     mdrsumres[(int)vpheno[idxind]][idxres]++;
     }
   accres=Result();
-  for (idxparts=0; idxparts<N_MDR_PARTS; idxparts++)
+  for (idxpart=0; idxpart<N_MDR_PARTS; idxpart++) {
+    accres.train.clearPartData();
+    accres.test.clearPartData();
     for(idxres=0; idxres<getAlleleCombinations(combinations); idxres++) {
-      if (mdrpartres[idxparts][CONTROL][idxres]==0 && mdrpartres[idxparts][CASE][idxres]==0)
-        continue;
-      bool controlratio;
-      controlratio=mdrpartres[idxparts][CONTROL][idxres]>mdrpartres[idxparts][CASE][idxres];
-      (controlratio?accres.train.fp:accres.train.tp)+=mdrpartres[idxparts][CASE][idxres];
-      (controlratio?accres.train.tn:accres.train.fn)+=mdrpartres[idxparts][CONTROL][idxres];
-      controlratio=(mdrsumres[CONTROL][idxres]-mdrpartres[idxparts][CONTROL][idxres])>
-        (mdrsumres[CASE][idxres]-mdrpartres[idxparts][CASE][idxres]) &&
-        mdrpartres[idxparts][CONTROL][idxres]>mdrpartres[idxparts][CASE][idxres];
-      (controlratio?accres.test.fp:accres.test.tp)+=mdrpartres[idxparts][CASE][idxres];
-      (controlratio?accres.test.tn:accres.test.fn)+=mdrpartres[idxparts][CONTROL][idxres];
+      traincase=mdrsumres[CASE][idxres]-mdrpartres[idxpart][CASE][idxres];
+      traincontrol=mdrsumres[CONTROL][idxres]-mdrpartres[idxpart][CONTROL][idxres];
+      if (traincase<traincontrol) {
+        accres.train.fp+=traincase;
+        accres.train.tn+=traincontrol;
+        accres.test.fp+=mdrpartres[idxpart][CASE][idxres];
+        accres.test.tn+=mdrpartres[idxpart][CONTROL][idxres];
+        }
+      else {
+        accres.train.tp+=traincase;
+        accres.train.fn+=traincontrol;
+        accres.test.tp+=mdrpartres[idxpart][CASE][idxres];
+        accres.test.fn+=mdrpartres[idxpart][CONTROL][idxres];
+        }
       }
+    accres.train.addAccuracy(idxpart);
+    accres.test.addAccuracy(idxpart);
+    }
   memcpy(accres.markercombo,markercombo,sizeof(int)*combinations);
   accres.combinations=combinations;
-  accres.train.setAccuracy();
-  accres.test.setAccuracy();
+  accres.train.calc.accuracy/=(double)N_MDR_PARTS;
+  accres.test.calc.accuracy/=(double)N_MDR_PARTS;
   return accres;
   }
 //---------------------------------------------------------------------------
@@ -226,17 +260,18 @@ bool Analysis::Run(int rank, int blocksize, int combination) {
         origaccuracy=analyseAlleles(phenotype,combination);
         for (int i1=0; i1<param.npermutations; i1++) {
           permaccuracy=analyseAlleles(permpheno[i1],combination);
-          if (permaccuracy.train.calc.accuracy<origaccuracy.train.calc.accuracy)
-            origaccuracy.train.calc.nnegpermutations++;
-          if (permaccuracy.test.calc.accuracy<origaccuracy.test.calc.accuracy)
-            origaccuracy.test.calc.nnegpermutations++;
+          for (int i2=0; i2<N_MDR_PARTS; i2++) {
+            if (permaccuracy.train.partaccuracy[i2]<origaccuracy.train.partaccuracy[i2])
+              origaccuracy.train.calc.nnegpermutations++;
+            if (permaccuracy.test.partaccuracy[i2]<origaccuracy.test.partaccuracy[i2])
+              origaccuracy.test.calc.nnegpermutations++;
+            }
           }
         if (origaccuracy.test.getPvaluePermutations(param.npermutations)<=param.cutpvalue)
           origaccuracy.print(marker,param.npermutations,false);
-        maxaccuracy.testBestCombination(origaccuracy);
+        maxaccuracy.setBestCombination(origaccuracy);
         } while (increaseCombination(1,combination));
       }
-
     return true;
     }
   catch(exception &e) {
@@ -247,6 +282,24 @@ bool Analysis::Run(int rank, int blocksize, int combination) {
 //---------------------------------------------------------------------------
 void Analysis::printBestResult() {
   maxaccuracy.print(marker,param.npermutations,true);
+  }
+//---------------------------------------------------------------------------
+void Analysis::printParameters() {
+  clog << "Markers: " << param.nmarkers << endl;
+  clog << "Individuals: " << param.nindividuals << endl;
+  if (param.npermutations==0)
+    clog << "Permutations: None" << endl;
+  else
+    clog << "Permutations: " << param.npermutations << endl;
+  clog << "Max combinations: " << param.maxcombinations << endl;
+  if (param.cutpvalue==NO_CUTOFF)
+    clog << "Max p-value: Best value only" << endl;
+  else
+    clog << "Max p-value: " << param.cutpvalue << endl;
+  if (param.randomseed==0)
+    clog << "Seed: Std" << endl;
+  else
+    clog << "Seed: " << param.randomseed << endl;
   }
 //---------------------------------------------------------------------------
 Analysis::~Analysis() {

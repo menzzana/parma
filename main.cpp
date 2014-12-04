@@ -45,22 +45,30 @@ void cleanUp() {
 int main(int argc, char **argv) {
   string filename,phenoname, markerfilename;
   int optionvalue,mpirank,mpisize,optionindex,exitvalue;
-  MPI_Datatype MPI_2DOUBLE_INT,MPI_4INT_LONG_DOUBLE;
-  MPI_Op MPI_BESTCOMBINATION;
   MDR::SummedData::Calculated maxresult;
+  #ifndef SERIAL
+    MPI_Datatype MPI_2DOUBLE_INT,MPI_4INT_LONG_DOUBLE;
+    MPI_Op MPI_BESTCOMBINATION;
+  #endif
 
   try {
-    if (MPI_Init(&argc,&argv)!=MPI_SUCCESS)
-      throw runtime_error("Cannot init MPI");
-    MPI_Comm_rank(MPI_COMM_WORLD,&mpirank);
-    MPI_Comm_size(MPI_COMM_WORLD,&mpisize);
-    MPI_Type_create_struct(global::LENGTH_2DOUBLE_INT,global::BLOCK_2DOUBLE_INT,global::DISP_2DOUBLE_INT,
-                           global::TYPE_2DOUBLE_INT,&MPI_2DOUBLE_INT);
-    MPI_Type_commit(&MPI_2DOUBLE_INT);
-    MPI_Type_create_struct(global::LENGTH_4INT_LONG_DOUBLE,global::BLOCK_4INT_LONG_DOUBLE,
-                           global::DISP_4INT_LONG_DOUBLE,global::TYPE_4INT_LONG_DOUBLE,&MPI_4INT_LONG_DOUBLE);
-    MPI_Type_commit(&MPI_4INT_LONG_DOUBLE);
-    MPI_Op_create((MPI_User_function *)MDR::SummedData::procTestBestCombination, true, &MPI_BESTCOMBINATION);
+    #ifndef SERIAL
+      if (MPI_Init(&argc,&argv)!=MPI_SUCCESS)
+        throw runtime_error("Cannot init MPI");
+      MPI_Comm_rank(MPI_COMM_WORLD,&mpirank);
+      MPI_Comm_size(MPI_COMM_WORLD,&mpisize);
+      MPI_Type_create_struct(global::LENGTH_2DOUBLE_INT,global::BLOCK_2DOUBLE_INT,global::DISP_2DOUBLE_INT,
+                             global::TYPE_2DOUBLE_INT,&MPI_2DOUBLE_INT);
+      MPI_Type_commit(&MPI_2DOUBLE_INT);
+      MPI_Type_create_struct(global::LENGTH_4INT_LONG_DOUBLE,global::BLOCK_4INT_LONG_DOUBLE,
+                             global::DISP_4INT_LONG_DOUBLE,global::TYPE_4INT_LONG_DOUBLE,&MPI_4INT_LONG_DOUBLE);
+      MPI_Type_commit(&MPI_4INT_LONG_DOUBLE);
+      MPI_Op_create((MPI_User_function *)MDR::SummedData::procTestBestCombination, true, &MPI_BESTCOMBINATION);
+    #else
+      mpirank=global::MPIROOT;
+      mpisize=1;
+      maxresult.rank=global::MPIROOT;
+    #endif
     myanalysis=new MDR::Analysis();
     markerfilename="";
     if (mpirank==global::MPIROOT) {
@@ -93,7 +101,8 @@ int main(int argc, char **argv) {
               case Loader::STD:
                 mydata=new ExampleLoader();
                 break;
-              case Loader::HZDB:
+              case Loader::SPDB:
+                mydata=new SPLoader();
                 break;
               }
             break;
@@ -107,29 +116,36 @@ int main(int argc, char **argv) {
           throw runtime_error("Cannot load markers from file: "+markerfilename);
       if (!mydata->loadFile(filename, phenoname, myanalysis))
         throw runtime_error("Cannot load data file: "+filename);
+      myanalysis->printParameters();
       MDR::Result::printHeader(myanalysis->param.npermutations>0);
       }
-    if (MPI_Bcast(&myanalysis->param,1,MPI_4INT_LONG_DOUBLE,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
-      throw runtime_error("Cannot broadcast parameters");
+    #ifndef SERIAL
+      if (MPI_Bcast(&myanalysis->param,1,MPI_4INT_LONG_DOUBLE,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
+        throw runtime_error("Cannot broadcast parameters");
+    #endif
     RND::sran1(myanalysis->param.randomseed);
     myanalysis->createDataBuffers(mpirank!=global::MPIROOT);
-    if (MPI_Bcast(&myanalysis->phenotype[0],myanalysis->param.nindividuals,
-                  MPI_UNSIGNED_CHAR,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
-      throw runtime_error("Cannot broadcast phenotype vector");
-    if (MPI_Bcast(&myanalysis->gendata[0][0],myanalysis->param.nmarkers*myanalysis->param.nindividuals,
-                  MPI_UNSIGNED_CHAR,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
-      throw runtime_error("Cannot broadcast genetic data");
-    if (MPI_Bcast(&myanalysis->marker[0][0],myanalysis->param.nmarkers*global::MAX_LENGTH_MARKER_NAME,
-                  MPI_CHAR,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
-      throw runtime_error("Cannot broadcast marker names");
+    #ifndef SERIAL
+      if (MPI_Bcast(&myanalysis->phenotype[0],myanalysis->param.nindividuals,
+                    MPI_UNSIGNED_CHAR,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
+        throw runtime_error("Cannot broadcast phenotype vector");
+      if (MPI_Bcast(&myanalysis->gendata[0][0],myanalysis->param.nmarkers*myanalysis->param.nindividuals,
+                    MPI_UNSIGNED_CHAR,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
+        throw runtime_error("Cannot broadcast genetic data");
+      if (MPI_Bcast(&myanalysis->marker[0][0],myanalysis->param.nmarkers*global::MAX_LENGTH_MARKER_NAME,
+                    MPI_CHAR,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
+        throw runtime_error("Cannot broadcast marker names");
+    #endif
     myanalysis->setInitialArrays();
     for (int ncombo=1; ncombo<=myanalysis->param.maxcombinations; ncombo++) {
       if (!myanalysis->Run(mpirank,mpisize,ncombo))
         throw runtime_error("Cannot analyse data");
       myanalysis->maxaccuracy.test.calc.rank=mpirank;
-      if (MPI_Allreduce(&myanalysis->maxaccuracy.test.calc,&maxresult,1,
-                        MPI_2DOUBLE_INT,MPI_BESTCOMBINATION,MPI_COMM_WORLD)!=MPI_SUCCESS)
-        throw runtime_error("Cannot reduce max results from all processes");
+      #ifndef SERIAL
+        if (MPI_Allreduce(&myanalysis->maxaccuracy.test.calc,&maxresult,1,
+                          MPI_2DOUBLE_INT,MPI_BESTCOMBINATION,MPI_COMM_WORLD)!=MPI_SUCCESS)
+          throw runtime_error("Cannot reduce max results from all processes");
+      #endif
       if (maxresult.rank==mpirank)
         myanalysis->printBestResult();
       }
@@ -140,7 +156,9 @@ int main(int argc, char **argv) {
     exitvalue=EXIT_FAILURE;
     }
   cleanUp();
-  MPI_Finalize();
+  #ifndef SERIAL
+    MPI_Finalize();
+  #endif
   exit(exitvalue);
   }
 //------------------------------------------------------------------------------

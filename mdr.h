@@ -39,19 +39,22 @@ namespace MDR {
   //------------------------------------------------------------------------------
   class SummedData {
     public:
-      double tp,fp,tn,fn;
       struct Calculated {
         double nnegpermutations;
         double accuracy;
         int rank;
         } calc;
+      double tp,fp,tn,fn;
+      double partaccuracy[N_MDR_PARTS];
 
       SummedData();
-      void copy(SummedData summeddata);
-      void setAccuracy();
+      void clearPartData();
+      void addAccuracy(int idxpart);
       double getPvaluePermutations(int npermutations);
       static bool testBestCombination(Calculated calc1, Calculated calc2);
-      static void procTestBestCombination(Calculated *in, Calculated *inout, int *len, MPI_Datatype *type);
+      #ifndef SERIAL
+        static void procTestBestCombination(Calculated *in, Calculated *inout, int *len, MPI_Datatype *type);
+      #endif
     };
 //------------------------------------------------------------------------------
   class Result {
@@ -62,7 +65,7 @@ namespace MDR {
 
       Result();
       void copy(Result result);
-      void testBestCombination(Result result);
+      void setBestCombination(Result result);
       static void printHeader(bool ispermutation);
       void print(char **marker, int npermutations, bool highest);
     };
@@ -96,9 +99,12 @@ namespace MDR {
 
       Analysis();
       void setInitialArrays();
+      void createMasterDataBuffers(int nmarker, int nindividual);
       void createDataBuffers(bool initthisrank);
+      void removeNonGenotypeIndividuals();
       bool Run(int rank, int blocksize, int combination);
       void printBestResult();
+      void printParameters();
       ~Analysis();
     };
   }
