@@ -49,7 +49,7 @@ Loader::~Loader() {
   selmarker.clear();
   }
 //---------------------------------------------------------------------------
-bool ExampleLoader::loadFile(string filename, string phenoname, MDR::Analysis *analysis) {
+bool ExampleLoader::loadFile(string filename, MDR::Analysis *analysis) {
   ifstream fpr;
   string fstr;
   int idxind,idxmark,nmarker,nindividual,i1;
@@ -115,7 +115,7 @@ template<typename T> T *addEntry(T *first,string name) {
   return tl1;
   }
 //------------------------------------------------------------------------------
-bool SPLoader::loadFile(string filename, string phenoname, MDR::Analysis *analysis) {
+bool SPLoader::loadFile(string filename, MDR::Analysis *analysis) {
   const char BASES[]="ACGTacgt";
   ifstream fpr;
   string fstr,data[MAX_DATA_COLUMNS];

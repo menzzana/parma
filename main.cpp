@@ -28,7 +28,6 @@ static struct option long_options[]={
   {"perm",required_argument,0,'p'},
   {"mfile",required_argument,0,'m'},
   {"seed",required_argument,0,'s'},
-  {"pheno",required_argument,0,'t'},
   {"dtype",required_argument,0,'d'},
   {"comb",required_argument,0,'c'},
   {"cpvalue",required_argument,0,'u'},
@@ -43,7 +42,7 @@ void cleanUp() {
   }
 //------------------------------------------------------------------------------
 int main(int argc, char **argv) {
-  string filename,phenoname, markerfilename;
+  string filename,markerfilename;
   int optionvalue,mpirank,mpisize,optionindex,exitvalue;
   MDR::SummedData::Calculated maxresult;
   #ifndef SERIAL
@@ -93,9 +92,6 @@ int main(int argc, char **argv) {
           case 's':
             myanalysis->param.randomseed=-atol(optarg);
             break;
-          case 't':
-            phenoname=optarg;
-            break;
           case 'd':
             switch(atoi(optarg)) {
               case Loader::STD:
@@ -114,7 +110,7 @@ int main(int argc, char **argv) {
       if (markerfilename.length()>0)
         if (!mydata->loadSelectedMarkers(markerfilename))
           throw runtime_error("Cannot load markers from file: "+markerfilename);
-      if (!mydata->loadFile(filename, phenoname, myanalysis))
+      if (!mydata->loadFile(filename, myanalysis))
         throw runtime_error("Cannot load data file: "+filename);
       myanalysis->printParameters();
       if (myanalysis->param.nmarkers<mpisize)

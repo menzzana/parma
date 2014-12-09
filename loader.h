@@ -26,13 +26,13 @@ class Loader {
     int getIndex(vector <string> myvec, string searchstring);
     int getIndex(vector <char[30]> myvec, string searchstring);
     void splitDataString(string fstr,string *data);
-    virtual bool loadFile(string filename, string phenoname, MDR::Analysis *analysis)=0;
+    virtual bool loadFile(string filename, MDR::Analysis *analysis)=0;
     ~Loader();
   };
 //------------------------------------------------------------------------------
 class ExampleLoader : public Loader {
   public:
-    bool loadFile(string filename, string phenoname, MDR::Analysis *analysis);
+    bool loadFile(string filename, MDR::Analysis *analysis);
   };
 //------------------------------------------------------------------------------
 class SPLoader : public Loader {
@@ -44,7 +44,7 @@ class SPLoader : public Loader {
     static const int SPALLELE2=4;
     static const float SPPROCCOMPLETEANALYSIS=0.795;
 
-    bool loadFile(string filename, string phenoname, MDR::Analysis *analysis);
+    bool loadFile(string filename, MDR::Analysis *analysis);
   };
 //------------------------------------------------------------------------------
 class MarkerList {
