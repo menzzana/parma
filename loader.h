@@ -17,13 +17,8 @@ class Loader {
     static const unsigned char ASCII0=48;
     static const int STD=1;               // Data format Example Loader class
     static const int SPDB=2;              // Data format DB schizophrenia class
-    static const int SPMARKER=0;
-    static const int SPINDIVIDUAL=1;
-    static const int SPPHENOTYPE=2;
-    static const int SPALLELE1=3;
-    static const int SPALLELE2=4;
-    static const int MAX_DATA_COLUMNS=5;
     static const int BED=3;               // Data format for BED plink files
+    static const int MAX_DATA_COLUMNS=5;
     vector <string> selmarker;
 
     Loader();
@@ -42,6 +37,13 @@ class ExampleLoader : public Loader {
 //------------------------------------------------------------------------------
 class SPLoader : public Loader {
   public:
+    static const int SPMARKER=0;
+    static const int SPINDIVIDUAL=1;
+    static const int SPPHENOTYPE=2;
+    static const int SPALLELE1=3;
+    static const int SPALLELE2=4;
+    static const float SPPROCCOMPLETEANALYSIS=0.795;
+
     bool loadFile(string filename, string phenoname, MDR::Analysis *analysis);
   };
 //------------------------------------------------------------------------------

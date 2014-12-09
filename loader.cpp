@@ -145,7 +145,7 @@ bool SPLoader::loadFile(string filename, string phenoname, MDR::Analysis *analys
       }
     nmarkers=marker->size;
     for (ml1=marker,i1=0; ml1!=NULL; ml1=ml1->Next)
-      if (ml1->count<(individual->size*0.5)) {
+      if (ml1->count<(SPPROCCOMPLETEANALYSIS*(float)individual->size)) {
         marker->size--;
         ml1->complete_analysis=false;
         }

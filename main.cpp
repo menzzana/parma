@@ -117,6 +117,8 @@ int main(int argc, char **argv) {
       if (!mydata->loadFile(filename, phenoname, myanalysis))
         throw runtime_error("Cannot load data file: "+filename);
       myanalysis->printParameters();
+      if (myanalysis->param.nmarkers<mpisize)
+        throw runtime_error("Too many processes. Max 1 process/marker");
       MDR::Result::printHeader(myanalysis->param.npermutations>0);
       }
     #ifndef SERIAL
