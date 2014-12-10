@@ -69,16 +69,19 @@ void Result::printHeader(bool ispermutation) {
   }
 //---------------------------------------------------------------------------
 void Result::print(char **marker,int npermutations, bool highest) {
-  for (int i1=0; i1<combinations; i1++)
-    cout << (i1==0?"":",")<<marker[markercombo[i1]];
-  cout  << delimiter << train.calc.accuracy << delimiter << test.calc.accuracy;
-  if (npermutations>0) {
-    cout << delimiter << train.getPvaluePermutations(npermutations);
-    cout << delimiter << test.getPvaluePermutations(npermutations);
+  for (int i1=0; i1<combinations; i1++) {
+    cout <<marker[markercombo[i1]];
+    if (i1==0) {
+      cout  << delimiter << train.calc.accuracy << delimiter << test.calc.accuracy;
+      if (npermutations>0) {
+        cout << delimiter << train.getPvaluePermutations(npermutations);
+        cout << delimiter << test.getPvaluePermutations(npermutations);
+        }
+      if (highest)
+        cout << delimiter << "*";
+      }
+    cout << endl;
     }
-  if (highest)
-    cout << delimiter << "*";
-  cout << endl;
   }
 //---------------------------------------------------------------------------
 Analysis::Analysis() {

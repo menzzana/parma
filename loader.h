@@ -37,12 +37,12 @@ class ExampleLoader : public Loader {
 //------------------------------------------------------------------------------
 class SPLoader : public Loader {
   public:
+    #define SPPROCCOMPLETEANALYSIS 0.795
     static const int SPMARKER=0;
     static const int SPINDIVIDUAL=1;
     static const int SPPHENOTYPE=2;
     static const int SPALLELE1=3;
     static const int SPALLELE2=4;
-    static const float SPPROCCOMPLETEANALYSIS=0.795;
 
     bool loadFile(string filename, MDR::Analysis *analysis);
   };
