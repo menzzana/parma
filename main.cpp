@@ -113,15 +113,13 @@ int main(int argc, char **argv) {
       if (!mydata->loadFile(filename, myanalysis))
         throw runtime_error("Cannot load data file: "+filename);
       myanalysis->printParameters();
-      if (myanalysis->param.nmarkers<mpisize)
-        throw runtime_error("Too many processes. Max 1 process/marker");
       MDR::Result::printHeader(myanalysis->param.npermutations>0);
       }
     #ifndef SERIAL
       if (MPI_Bcast(&myanalysis->param,1,MPI_4INT_LONG_DOUBLE,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
         throw runtime_error("Cannot broadcast parameters");
     #endif
-    RND::sran1(myanalysis->param.randomseed);
+    CALC::sran1(myanalysis->param.randomseed);
     myanalysis->createDataBuffers(mpirank!=global::MPIROOT);
     #ifndef SERIAL
       if (MPI_Bcast(&myanalysis->phenotype[0],myanalysis->param.nindividuals,

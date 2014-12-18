@@ -1,12 +1,12 @@
 #include "global.h"
 //---------------------------------------------------------------------------
-void RND::sran1(long seedvalue) {
+void CALC::sran1(long seedvalue) {
   // Initialize with negative number
   if (rseed<0)
     rseed=seedvalue;
   }
 //---------------------------------------------------------------------------
-double RND::ran1() {
+double CALC::ran1() {
   int j;
   long k;
   static long iy=0;
@@ -39,5 +39,17 @@ double RND::ran1() {
   if (temp>RNMX)
     return RNMX;
   return temp;
+  }
+//---------------------------------------------------------------------------
+unsigned long long CALC::C(unsigned long long n, unsigned long long k) {
+  unsigned long long d,r=1;
+
+  if (k>n)
+    return 0;
+  for (d=1; d<=k; d++) {
+    r*=n--;
+    r/=d;
+    }
+  return r;
   }
 //---------------------------------------------------------------------------

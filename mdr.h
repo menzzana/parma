@@ -80,11 +80,9 @@ namespace MDR {
       void populateMDRParts();
       void randomShuffle(unsigned char *data);
       int getAlleleCombinations(int combinations);
-      bool setInitialCombination(int idxmark, int combinations);
-      bool increaseCombination(int idxmarkcombo, int combinations);
-      bool increaseMarker(int idxmarkcombo);
+      void setMarkerCombination(unsigned long long cidx, int combinations);
       void clearMDRResults(int combinations);
-      Result analyseAlleles(unsigned char *vpheno, int combinations);
+      Result analyseAlleles(unsigned char *vpheno, int combinations, Result *original);
 
     public:
       struct Param {
@@ -102,7 +100,7 @@ namespace MDR {
       void createMasterDataBuffers(int nmarker, int nindividual);
       void createDataBuffers(bool initthisrank);
       void removeNonGenotypeIndividuals();
-      bool Run(int rank, int blocksize, int combination);
+      bool Run(int rank, int mpisize, int combination);
       void printBestResult();
       void printParameters();
       ~Analysis();

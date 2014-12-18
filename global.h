@@ -45,7 +45,7 @@ namespace global {
   #endif
   }
 //------------------------------------------------------------------------------
-namespace RND {
+namespace CALC {
   #define IA 16807
   #define IM 2147483647
   #define AM (1.0/IM)
@@ -59,6 +59,7 @@ namespace RND {
 
   void sran1(long rseed);
   double ran1();
+  unsigned long long C(unsigned long long n, unsigned long long k);
   }
 //------------------------------------------------------------------------------
 #endif // GLOBAL_H

@@ -17,8 +17,8 @@ void SummedData::addAccuracy(int idxpart) {
 
   sens=(tp+fn)==0?0:tp/(tp+fn);
   spec=(fp+tn)==0?0:tn/(fp+tn);
-  calc.accuracy+=(sens+spec)/2;
   partaccuracy[idxpart]=(sens+spec)/2;
+  calc.accuracy+=partaccuracy[idxpart];
   }
 //---------------------------------------------------------------------------
 double SummedData::getPvaluePermutations(int npermutations) {
@@ -146,36 +146,23 @@ void Analysis::populateMDRParts() {
 //---------------------------------------------------------------------------
 void Analysis::randomShuffle(unsigned char *data) {
   for (int i1=0; i1<param.nindividuals; i1++)
-    swap(data[i1],data[(int)(RND::ran1()*param.nindividuals)]);
+    swap(data[i1],data[(int)(CALC::ran1()*param.nindividuals)]);
   }
 //---------------------------------------------------------------------------
 int Analysis::getAlleleCombinations(int combinations) {
   return pow(ALLELE_COMBINATIONS,combinations);
   }
 //---------------------------------------------------------------------------
-bool Analysis::setInitialCombination(int idxmark, int combinations) {
-  if (param.nmarkers<(combinations+idxmark))
-    return false;
-  markercombo[0]=idxmark;
-  for (int i1=1; i1<combinations; i1++)
-    markercombo[i1]=idxmark+combinations-i1;
-  return true;
-  }
-//---------------------------------------------------------------------------
-bool Analysis::increaseCombination(int idxmarkcombo, int combinations) {
-  if (idxmarkcombo==combinations)
-    return false;
-  if (increaseMarker(idxmarkcombo))
-    return true;
-  if (!increaseCombination(idxmarkcombo+1,combinations))
-    return false;
-  markercombo[idxmarkcombo]=markercombo[idxmarkcombo+1];
-  return increaseMarker(idxmarkcombo);
-  }
-//---------------------------------------------------------------------------
-bool Analysis::increaseMarker(int idxmarkcombo) {
-  markercombo[idxmarkcombo]+=(markercombo[0]==(markercombo[idxmarkcombo]+1)?2:1);
-  return markercombo[idxmarkcombo]<param.nmarkers;
+void Analysis::setMarkerCombination(unsigned long long cidx, int combinations) {
+  int i1,i2;
+  unsigned long long cidx1;
+
+  cidx1=cidx;
+  for (i1=0; i1<combinations; i1++) {
+    for (i2=0; CALC::C(i2+1,combinations-i1)<=cidx1; i2++);
+    cidx1-=CALC::C(i2,combinations-i1);
+    markercombo[i1]=i2;
+    }
   }
 //---------------------------------------------------------------------------
 void Analysis::clearMDRResults(int combinations) {
@@ -207,7 +194,7 @@ void Analysis::removeNonGenotypeIndividuals() {
   param.nindividuals=idxnewindividual;
   }
 //---------------------------------------------------------------------------
-Result Analysis::analyseAlleles(unsigned char *vpheno, int combinations) {
+Result Analysis::analyseAlleles(unsigned char *vpheno, int combinations, Result *original) {
   Result accres;
   int idxmark,idxind,idxres,idxpart;
   int traincase,traincontrol;
@@ -242,6 +229,12 @@ Result Analysis::analyseAlleles(unsigned char *vpheno, int combinations) {
       }
     accres.train.addAccuracy(idxpart);
     accres.test.addAccuracy(idxpart);
+    if (original!=NULL) {
+      if (accres.train.partaccuracy[idxpart]<original->train.partaccuracy[idxpart])
+        original->train.calc.nnegpermutations++;
+      if (accres.test.partaccuracy[idxpart]<original->test.partaccuracy[idxpart])
+        original->test.calc.nnegpermutations++;
+      }
     }
   memcpy(accres.markercombo,markercombo,sizeof(int)*combinations);
   accres.combinations=combinations;
@@ -250,30 +243,21 @@ Result Analysis::analyseAlleles(unsigned char *vpheno, int combinations) {
   return accres;
   }
 //---------------------------------------------------------------------------
-bool Analysis::Run(int rank, int blocksize, int combination) {
-  int idxmark;
-  Result origaccuracy,permaccuracy;
+bool Analysis::Run(int rank, int mpisize, int combination) {
+  unsigned long long cidx,maxmarkercombos;
+  Result origaccuracy;
 
   try {
     maxaccuracy=Result();
-    for (idxmark=rank; idxmark<param.nmarkers; idxmark+=blocksize) {
-      if (!setInitialCombination(idxmark,combination))
-        continue;
-      do {
-        origaccuracy=analyseAlleles(phenotype,combination);
-        for (int i1=0; i1<param.npermutations; i1++) {
-          permaccuracy=analyseAlleles(permpheno[i1],combination);
-          for (int i2=0; i2<N_MDR_PARTS; i2++) {
-            if (permaccuracy.train.partaccuracy[i2]<origaccuracy.train.partaccuracy[i2])
-              origaccuracy.train.calc.nnegpermutations++;
-            if (permaccuracy.test.partaccuracy[i2]<origaccuracy.test.partaccuracy[i2])
-              origaccuracy.test.calc.nnegpermutations++;
-            }
-          }
-        if (origaccuracy.test.getPvaluePermutations(param.npermutations)<=param.cutpvalue)
-          origaccuracy.print(marker,param.npermutations,false);
-        maxaccuracy.setBestCombination(origaccuracy);
-        } while (increaseCombination(1,combination));
+    maxmarkercombos=CALC::C(param.nmarkers,combination);
+    for (cidx=rank; cidx<maxmarkercombos; cidx+=mpisize) {
+      setMarkerCombination(cidx,combination);
+      origaccuracy=analyseAlleles(phenotype,combination,NULL);
+      for (int i1=0; i1<param.npermutations; i1++)
+        analyseAlleles(permpheno[i1],combination,&origaccuracy);
+      if (origaccuracy.test.getPvaluePermutations(param.npermutations)<=param.cutpvalue)
+        origaccuracy.print(marker,param.npermutations,false);
+      maxaccuracy.setBestCombination(origaccuracy);
       }
     return true;
     }
