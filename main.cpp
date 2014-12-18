@@ -25,12 +25,12 @@ see <http://www.gnu.org/licenses/>.
 //------------------------------------------------------------------------------
 static struct option long_options[]={
   {"file",required_argument,0,'f'},
-  {"perm",required_argument,0,'p'},
-  {"mfile",required_argument,0,'m'},
+  {"permutations",required_argument,0,'p'},
+  {"markerfile",required_argument,0,'m'},
   {"seed",required_argument,0,'s'},
-  {"dtype",required_argument,0,'d'},
-  {"comb",required_argument,0,'c'},
-  {"cpvalue",required_argument,0,'u'},
+  {"datatype",required_argument,0,'d'},
+  {"combinations",required_argument,0,'c'},
+  {"cutoffpvalue",required_argument,0,'u'},
   {0,0,0,0}
   };
 Loader *mydata;

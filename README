@@ -43,19 +43,19 @@ loader.cpp/.h
 version_config.h.in
 
 OPTIONS
--seed [value]           Set [value] as new seed for random calculations
+-s,seed [value]         Set [value] as new seed for random calculations
                         [value] should be a positive integer
--perm [value]           Set [value] as the number of permutations
--file [file]            The [file] that should contain the genetic data
--mfile [file]           The [file] containing the markers to be analyzed
+-p,permutations [value] Set [value] as the number of permutations
+-f,file [file]          The [file] that should contain the genetic data
+-m,markerfile [file]    The [file] containing the markers to be analyzed
                         If not included all markers will be analyzed
                         Markers in this file should be ordered in one marker per line with no header
--comb [value]           Max number of marker combinations tested
--dtype [value]          Input data format
+-c,combinations [value] Max number of marker combinations tested
+-d,datatype [value]     Input data format
                         [value] 1 Example data format from MDR
                         [value] 2 Schizophrenic Database format
                         [value] 3 Plink BED format
--cpvalue [value]        Show only test pvalues below this limit.
+-u,cutoffpvalue [value] Show only test pvalues below this limit.
                         Without this option only the best combinations will be shown
 
 
