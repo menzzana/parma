@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
     markerfilename="";
     if (mpirank==global::MPIROOT) {
       printVersion();
-      while ((optionvalue=getopt_long_only(argc,argv,"f:p:m:s:t:d:c:",long_options,&optionindex))!=global::END_OF_OPTIONS)
+      while ((optionvalue=getopt_long_only(argc,argv,"f:p:u:a:i:m:s:d:",long_options,&optionindex))!=global::END_OF_OPTIONS)
         switch (optionvalue) {
           case 'f':
             filename=optarg;
