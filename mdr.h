@@ -30,6 +30,7 @@ namespace MDR {
   static const unsigned char CONTROL=0;
   static const unsigned char CASE=1;
   static const int MAX_MARKER_COMBINATIONS=100;
+  static const int MIN_MARKER_COMBINATIONS=1;
   static const int N_MDR_PARTS=10;
   static const int PHENOTYPE_COMBINATIONS=2;
   static const int ALLELE_COMBINATIONS=3;
@@ -86,7 +87,7 @@ namespace MDR {
 
     public:
       struct Param {
-        int npermutations,maxcombinations,nmarkers,nindividuals;
+        int npermutations,maxcombinations,mincombinations,nmarkers,nindividuals;
         long randomseed;
         double cutpvalue;
         } param;
@@ -99,6 +100,7 @@ namespace MDR {
       void setInitialArrays();
       void createMasterDataBuffers(int nmarker, int nindividual);
       void createDataBuffers(bool initthisrank);
+      void checkMaxCombination();
       void removeNonGenotypeIndividuals();
       bool Run(int rank, int mpisize, int combination);
       void printBestResult();

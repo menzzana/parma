@@ -31,16 +31,16 @@ namespace global {
     static MPI_Aint DISP_2DOUBLE_INT[LENGTH_2DOUBLE_INT]={
       0,sizeof(double),2*sizeof(double)
       };
-    static const int LENGTH_4INT_LONG_DOUBLE=6;
-    static MPI_Datatype TYPE_4INT_LONG_DOUBLE[LENGTH_4INT_LONG_DOUBLE]={
-      MPI_INT,MPI_INT,MPI_INT,MPI_INT,MPI_LONG,MPI_DOUBLE
+    static const int LENGTH_5INT_LONG_DOUBLE=7;
+    static MPI_Datatype TYPE_5INT_LONG_DOUBLE[LENGTH_5INT_LONG_DOUBLE]={
+      MPI_INT,MPI_INT,MPI_INT,MPI_INT,MPI_INT,MPI_LONG,MPI_DOUBLE
       };
-    static int BLOCK_4INT_LONG_DOUBLE[LENGTH_4INT_LONG_DOUBLE]={
-      1,1,1,1,1,1
+    static int BLOCK_5INT_LONG_DOUBLE[LENGTH_5INT_LONG_DOUBLE]={
+      1,1,1,1,1,1,1
       };
-    static MPI_Aint DISP_4INT_LONG_DOUBLE[LENGTH_4INT_LONG_DOUBLE]={
+    static MPI_Aint DISP_5INT_LONG_DOUBLE[LENGTH_5INT_LONG_DOUBLE]={
       0,sizeof(int),2*sizeof(int),3*sizeof(int),4*sizeof(int),
-      4*sizeof(int)+sizeof(long)
+      5*sizeof(int),5*sizeof(int)+sizeof(long)
       };
   #endif
   }

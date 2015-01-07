@@ -93,6 +93,7 @@ Analysis::Analysis() {
   parts=NULL;
   param.npermutations=0;
   param.maxcombinations=MAX_MARKER_COMBINATIONS;
+  param.mincombinations=MIN_MARKER_COMBINATIONS;
   param.nmarkers=0;
   param.nindividuals=0;
   param.randomseed=0;
@@ -151,6 +152,10 @@ void Analysis::randomShuffle(unsigned char *data) {
 //---------------------------------------------------------------------------
 int Analysis::getAlleleCombinations(int combinations) {
   return pow(ALLELE_COMBINATIONS,combinations);
+  }
+//---------------------------------------------------------------------------
+void Analysis::checkMaxCombination() {
+  param.maxcombinations=min(param.maxcombinations,param.nmarkers);
   }
 //---------------------------------------------------------------------------
 void Analysis::setMarkerCombination(unsigned long long cidx, int combinations) {
@@ -278,6 +283,7 @@ void Analysis::printParameters() {
     clog << "Permutations: None" << endl;
   else
     clog << "Permutations: " << param.npermutations << endl;
+  clog << "Min combinations: " << param.mincombinations << endl;
   clog << "Max combinations: " << param.maxcombinations << endl;
   if (param.cutpvalue==NO_CUTOFF)
     clog << "Max p-value: Best value only" << endl;

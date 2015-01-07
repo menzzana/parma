@@ -29,7 +29,8 @@ static struct option long_options[]={
   {"markerfile",required_argument,0,'m'},
   {"seed",required_argument,0,'s'},
   {"datatype",required_argument,0,'d'},
-  {"combinations",required_argument,0,'c'},
+  {"maxcombinations",required_argument,0,'a'},
+  {"mincombinations",required_argument,0,'i'},
   {"cutoffpvalue",required_argument,0,'u'},
   {0,0,0,0}
   };
@@ -46,7 +47,7 @@ int main(int argc, char **argv) {
   int optionvalue,mpirank,mpisize,optionindex,exitvalue;
   MDR::SummedData::Calculated maxresult;
   #ifndef SERIAL
-    MPI_Datatype MPI_2DOUBLE_INT,MPI_4INT_LONG_DOUBLE;
+    MPI_Datatype MPI_2DOUBLE_INT,MPI_5INT_LONG_DOUBLE;
     MPI_Op MPI_BESTCOMBINATION;
   #endif
 
@@ -59,9 +60,9 @@ int main(int argc, char **argv) {
       MPI_Type_create_struct(global::LENGTH_2DOUBLE_INT,global::BLOCK_2DOUBLE_INT,global::DISP_2DOUBLE_INT,
                              global::TYPE_2DOUBLE_INT,&MPI_2DOUBLE_INT);
       MPI_Type_commit(&MPI_2DOUBLE_INT);
-      MPI_Type_create_struct(global::LENGTH_4INT_LONG_DOUBLE,global::BLOCK_4INT_LONG_DOUBLE,
-                             global::DISP_4INT_LONG_DOUBLE,global::TYPE_4INT_LONG_DOUBLE,&MPI_4INT_LONG_DOUBLE);
-      MPI_Type_commit(&MPI_4INT_LONG_DOUBLE);
+      MPI_Type_create_struct(global::LENGTH_5INT_LONG_DOUBLE,global::BLOCK_5INT_LONG_DOUBLE,
+                             global::DISP_5INT_LONG_DOUBLE,global::TYPE_5INT_LONG_DOUBLE,&MPI_5INT_LONG_DOUBLE);
+      MPI_Type_commit(&MPI_5INT_LONG_DOUBLE);
       MPI_Op_create((MPI_User_function *)MDR::SummedData::procTestBestCombination, true, &MPI_BESTCOMBINATION);
     #else
       mpirank=global::MPIROOT;
@@ -83,8 +84,11 @@ int main(int argc, char **argv) {
           case 'u':
             myanalysis->param.cutpvalue=atof(optarg);
             break;
-          case 'c':
+          case 'a':
             myanalysis->param.maxcombinations=atoi(optarg);
+            break;
+          case 'i':
+            myanalysis->param.mincombinations=atoi(optarg);
             break;
           case 'm':
             markerfilename=optarg;
@@ -112,11 +116,12 @@ int main(int argc, char **argv) {
           throw runtime_error("Cannot load markers from file: "+markerfilename);
       if (!mydata->loadFile(filename, myanalysis))
         throw runtime_error("Cannot load data file: "+filename);
+      myanalysis->checkMaxCombination();
       myanalysis->printParameters();
       MDR::Result::printHeader(myanalysis->param.npermutations>0);
       }
     #ifndef SERIAL
-      if (MPI_Bcast(&myanalysis->param,1,MPI_4INT_LONG_DOUBLE,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
+      if (MPI_Bcast(&myanalysis->param,1,MPI_5INT_LONG_DOUBLE,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
         throw runtime_error("Cannot broadcast parameters");
     #endif
     CALC::sran1(myanalysis->param.randomseed);
@@ -133,7 +138,7 @@ int main(int argc, char **argv) {
         throw runtime_error("Cannot broadcast marker names");
     #endif
     myanalysis->setInitialArrays();
-    for (int ncombo=1; ncombo<=myanalysis->param.maxcombinations; ncombo++) {
+    for (int ncombo=myanalysis->param.mincombinations; ncombo<=myanalysis->param.maxcombinations; ncombo++) {
       if (!myanalysis->Run(mpirank,mpisize,ncombo))
         throw runtime_error("Cannot analyse data");
       myanalysis->maxaccuracy.test.calc.rank=mpirank;
