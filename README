@@ -1,15 +1,30 @@
 Parma
-Genetic association in a schizophrenia dataset.
 
-Genes are the building blocks of heredity. They are passed from parent to child. They hold DNA, the instructions for making proteins, which in turn, produce energy, move molecules from one place to another, build structures, break down toxins, and do many other maintenance jobs.
-Sometimes there is a mutation, a change in a gene or genes, which changes the gene's instructions for making a protein, so the protein does not work properly or is missing entirely. This can cause a medical condition called a genetic disorder. 
-Identifying monogenic diseases, aka a genetic disorder where only one gene is involved, is straightforward since you only need to find one locus in close proximity to the gene in question where the distribution of the alleles differs between sick and healthy individuals.
-In polygenic diseases the statistics can be very complex since there can be any number of genes involved and not all contributing genes have the same impact on the disorder.
-In schizophrenia it has been estimated that more than 100 genes contribute to this condition, classifying schizophrenia as a highly polygenic disease.
-To further aggravate the problem, schizophrenia, can be divided into many sub-classes with different ethologies which frequently have a similar phenotype to many neurological diseases not classified as schizophrenic.
-In our project we plan to perform complex genetic statistics on a schizophrenia dataset, where an increasing number of loci combinations will be examined. To calculate the difference in allele frequency between sick and healthy individuals we will either use Pearson chi² distribution statistics or a Multi‑Dimensionality Reduction algorithm. The developed software will analyze 1 to N loci combinations and report which combination of loci has the best impact on the disease.
-To further ascertain that the best combination of loci has been found, we will permute the dataset M times, at the phenotype level, and directly compare the permuted results to the results obtained from the non-permuted dataset.
-This is a very computing intensive endeavor which one can limit by the number of permutations and the number of loci examined. Although by using an OpenMP/MPI hybrid approach we can divide the permuted datasets into several parallel processes.
+Genes are the building blocks of heredity. They are passed from parent 
+to child. They hold DNA, the instructions for making proteins, which in 
+turn, produce energy, move molecules from one place to another, build 
+structures, break down toxins, and do many other maintenance jobs.
+Sometimes there is a mutation, a change in a gene or genes, which changes 
+the gene's instructions for making a protein, so the protein does not work 
+properly or is missing entirely. This can cause a medical condition called 
+a genetic disorder. 
+Identifying monogenic diseases, aka a genetic disorder where only one gene 
+is involved, is straightforward since you only need to find one locus in 
+close proximity to the gene in question where the distribution of the alleles 
+differs between sick and healthy individuals.
+In polygenic diseases the statistics can be very complex since there can be 
+any number of genes involved and not all contributing genes have the same 
+impact on the disorder.
+In order to discover which combination of loci has the greatest impact on 
+a disease, this software analyzes all loci combinations, and to further ascertain that 
+the best combination of loci has been found, there is an option to permute the dataset 
+a number of times, at the phenotype level, and directly compare the permuted 
+results to the results obtained from the non-permuted dataset.
+This software performs this analysis by using an algorithm called  
+Multi‑Dimensionality Reduction (MDR) developed by Hahn et al.
+
+L. W. Hahn, M. D. Ritchie, J. H. 2003. Multifactor dimensionality reduction software for
+detecting gene–gene and gene–environment interactions. Bioinformatics 19:3. 376-382
 
 ***
 
