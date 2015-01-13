@@ -74,4 +74,19 @@ OPTIONS
 -u,cutoffpvalue [value]    Show only test pvalues below this limit.
                            Without this option only the best combinations will be shown
 
+OUTPUT
+The software outputs results in a TAB delimited format.
 
+Markers                     The combination of markers analyzed
+ClassificationError         The frequency of missclassified individuals in the
+                            training dataset
+PredictionError             The frequency of misspredicted individuals in the
+                            testing dataset
+ClassificationError p-value p-value of ClassificationError in the
+                            permuted dataset
+PredictionError p-value     p-value of PredictionError in the 
+                            permuted dataset
+MinError                    The best value in this specific marker combination
+                            MinError is evaluated using PredictionError or
+                            PredictionError p-value
+                            

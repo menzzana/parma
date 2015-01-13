@@ -85,10 +85,10 @@ int main(int argc, char **argv) {
             myanalysis->param.cutpvalue=atof(optarg);
             break;
           case 'a':
-            myanalysis->param.maxcombinations=atoi(optarg);
+            myanalysis->param.maxcombinations=min(myanalysis->param.maxcombinations,atoi(optarg));
             break;
           case 'i':
-            myanalysis->param.mincombinations=atoi(optarg);
+            myanalysis->param.mincombinations=min(myanalysis->param.maxcombinations,atoi(optarg));
             break;
           case 'm':
             markerfilename=optarg;
@@ -141,9 +141,9 @@ int main(int argc, char **argv) {
     for (int ncombo=myanalysis->param.mincombinations; ncombo<=myanalysis->param.maxcombinations; ncombo++) {
       if (!myanalysis->Run(mpirank,mpisize,ncombo))
         throw runtime_error("Cannot analyse data");
-      myanalysis->maxaccuracy.test.calc.rank=mpirank;
+      myanalysis->minerror.test.calc.rank=mpirank;
       #ifndef SERIAL
-        if (MPI_Allreduce(&myanalysis->maxaccuracy.test.calc,&maxresult,1,
+        if (MPI_Allreduce(&myanalysis->minerror.test.calc,&maxresult,1,
                           MPI_2DOUBLE_INT,MPI_BESTCOMBINATION,MPI_COMM_WORLD)!=MPI_SUCCESS)
           throw runtime_error("Cannot reduce max results from all processes");
       #endif

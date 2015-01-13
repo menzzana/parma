@@ -3,22 +3,23 @@
 using namespace MDR;
 //---------------------------------------------------------------------------
 SummedData::SummedData() {
-  calc.accuracy=calc.nnegpermutations=0;
+  calc.error=1;
+  calc.nnegpermutations=0;
   tp=fp=tn=fn=0;
-  memset(partaccuracy,0,sizeof(double)*N_MDR_PARTS);
+  memset(parterror,0,sizeof(double)*N_MDR_PARTS);
   }
 //---------------------------------------------------------------------------
 void SummedData::clearPartData() {
   tp=fp=tn=fn=0;
   }
 //---------------------------------------------------------------------------
-void SummedData::addAccuracy(int idxpart) {
-  float sens,spec;
+void SummedData::addError(int idxpart) {
+  float caseerror,controlerror;
 
-  sens=(tp+fn)==0?0:tp/(tp+fn);
-  spec=(fp+tn)==0?0:tn/(fp+tn);
-  partaccuracy[idxpart]=(sens+spec)/2;
-  calc.accuracy+=partaccuracy[idxpart];
+  caseerror=(tp+fp)==0?0:fp/(tp+fp);
+  controlerror=(fn+tn)==0?0:fn/(fn+tn);
+  parterror[idxpart]=(caseerror+controlerror)/2;
+  calc.error+=parterror[idxpart];
   }
 //---------------------------------------------------------------------------
 double SummedData::getPvaluePermutations(int npermutations) {
@@ -30,14 +31,14 @@ double SummedData::getPvaluePermutations(int npermutations) {
 bool SummedData::testBestCombination(Calculated calc1, Calculated calc2) {
   if (calc1.nnegpermutations!=calc2.nnegpermutations)
     return calc1.nnegpermutations<calc2.nnegpermutations;
-  return calc1.accuracy<calc2.accuracy;
+  return calc1.error>calc2.error;
   }
 //---------------------------------------------------------------------------
 #ifndef SERIAL
   void SummedData::procTestBestCombination(Calculated *in, Calculated *inout, int *len, MPI_Datatype *type) {
     if (testBestCombination(*inout,*in)) {
       inout->nnegpermutations=in->nnegpermutations;
-      inout->accuracy=in->accuracy;
+      inout->error=in->error;
       inout->rank=in->rank;
       }
     }
@@ -62,22 +63,22 @@ void Result::setBestCombination(Result result) {
   }
 //---------------------------------------------------------------------------
 void Result::printHeader(bool ispermutation) {
-  cout << "Markers"<< delimiter << "Train"<< delimiter << "Test"<< delimiter;
+  cout << "Markers"<< delimiter << "ClassificationError"<< delimiter << "PredictionError"<< delimiter;
   if (ispermutation)
-    cout << "Train p-value"<< delimiter << "Test p-value"<< delimiter;
-  cout << "Best value" << endl;
+    cout << "ClassificationError p-value"<< delimiter << "PredictionError p-value"<< delimiter;
+  cout << "MinError" << endl;
   }
 //---------------------------------------------------------------------------
-void Result::print(char **marker,int npermutations, bool highest) {
+void Result::print(char **marker,int npermutations, bool lowest) {
   for (int i1=0; i1<combinations; i1++) {
     cout <<marker[markercombo[i1]];
     if (i1==0) {
-      cout  << delimiter << train.calc.accuracy << delimiter << test.calc.accuracy;
+      cout  << delimiter << train.calc.error << delimiter << test.calc.error;
       if (npermutations>0) {
         cout << delimiter << train.getPvaluePermutations(npermutations);
         cout << delimiter << test.getPvaluePermutations(npermutations);
         }
-      if (highest)
+      if (lowest)
         cout << delimiter << "*";
       }
     cout << endl;
@@ -174,11 +175,11 @@ void Analysis::clearMDRResults(int combinations) {
   int vlength;
 
   vlength=getAlleleCombinations(combinations);
-  memset(mdrsumres[CONTROL],0,sizeof(int)*vlength);
-  memset(mdrsumres[CASE],0,sizeof(int)*vlength);
+  memset(mdrsumres[CONTROL],0,sizeof(short)*vlength);
+  memset(mdrsumres[CASE],0,sizeof(short)*vlength);
   for (int i1=0; i1<N_MDR_PARTS; i1++) {
-    memset(mdrpartres[i1][CONTROL],0,sizeof(int)*vlength);
-    memset(mdrpartres[i1][CASE],0,sizeof(int)*vlength);
+    memset(mdrpartres[i1][CONTROL],0,sizeof(short)*vlength);
+    memset(mdrpartres[i1][CASE],0,sizeof(short)*vlength);
     }
   }
 //---------------------------------------------------------------------------
@@ -232,37 +233,39 @@ Result Analysis::analyseAlleles(unsigned char *vpheno, int combinations, Result 
         accres.test.fn+=mdrpartres[idxpart][CONTROL][idxres];
         }
       }
-    accres.train.addAccuracy(idxpart);
-    accres.test.addAccuracy(idxpart);
+    accres.train.addError(idxpart);
+    accres.test.addError(idxpart);
     if (original!=NULL) {
-      if (accres.train.partaccuracy[idxpart]<original->train.partaccuracy[idxpart])
+      if (accres.train.parterror[idxpart]>original->train.parterror[idxpart])
         original->train.calc.nnegpermutations++;
-      if (accres.test.partaccuracy[idxpart]<original->test.partaccuracy[idxpart])
+      if (accres.test.parterror[idxpart]>original->test.parterror[idxpart])
         original->test.calc.nnegpermutations++;
       }
     }
-  memcpy(accres.markercombo,markercombo,sizeof(int)*combinations);
-  accres.combinations=combinations;
-  accres.train.calc.accuracy/=(double)N_MDR_PARTS;
-  accres.test.calc.accuracy/=(double)N_MDR_PARTS;
+  if (original==NULL) {
+    memcpy(accres.markercombo,markercombo,sizeof(int)*combinations);
+    accres.combinations=combinations;
+    accres.train.calc.error/=(double)N_MDR_PARTS;
+    accres.test.calc.error/=(double)N_MDR_PARTS;
+    }
   return accres;
   }
 //---------------------------------------------------------------------------
 bool Analysis::Run(int rank, int mpisize, int combination) {
   unsigned long long cidx,maxmarkercombos;
-  Result origaccuracy;
+  Result origerror;
 
   try {
-    maxaccuracy=Result();
+    minerror=Result();
     maxmarkercombos=CALC::C(param.nmarkers,combination);
     for (cidx=rank; cidx<maxmarkercombos; cidx+=mpisize) {
       setMarkerCombination(cidx,combination);
-      origaccuracy=analyseAlleles(phenotype,combination,NULL);
+      origerror=analyseAlleles(phenotype,combination,NULL);
       for (int i1=0; i1<param.npermutations; i1++)
-        analyseAlleles(permpheno[i1],combination,&origaccuracy);
-      if (origaccuracy.test.getPvaluePermutations(param.npermutations)<=param.cutpvalue)
-        origaccuracy.print(marker,param.npermutations,false);
-      maxaccuracy.setBestCombination(origaccuracy);
+        analyseAlleles(permpheno[i1],combination,&origerror);
+      if (origerror.test.getPvaluePermutations(param.npermutations)<=param.cutpvalue)
+        origerror.print(marker,param.npermutations,false);
+      minerror.setBestCombination(origerror);
       }
     return true;
     }
@@ -273,7 +276,7 @@ bool Analysis::Run(int rank, int mpisize, int combination) {
   }
 //---------------------------------------------------------------------------
 void Analysis::printBestResult() {
-  maxaccuracy.print(marker,param.npermutations,true);
+  minerror.print(marker,param.npermutations,true);
   }
 //---------------------------------------------------------------------------
 void Analysis::printParameters() {

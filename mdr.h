@@ -29,28 +29,28 @@ namespace MDR {
   static const unsigned char HOMOZYGOTE2=2;
   static const unsigned char CONTROL=0;
   static const unsigned char CASE=1;
-  static const int MAX_MARKER_COMBINATIONS=100;
+  static const int MAX_MARKER_COMBINATIONS=13;
   static const int MIN_MARKER_COMBINATIONS=1;
   static const int N_MDR_PARTS=10;
   static const int PHENOTYPE_COMBINATIONS=2;
   static const int ALLELE_COMBINATIONS=3;
-  // LIST_ALLELE_MARKER_COMBINATIONS=MAX_MARKER_COMBINATIONS^ALLELE_COMBINATIONS
-  static const int LIST_ALLELE_MARKER_COMBINATIONS=10E6;
+  // LIST_ALLELE_MARKER_COMBINATIONS=ALLELE_COMBINATIONS^MAX_MARKER_COMBINATIONS
+  static const int LIST_ALLELE_MARKER_COMBINATIONS=2E6;
   static const double NO_CUTOFF=-1;
   //------------------------------------------------------------------------------
   class SummedData {
     public:
       struct Calculated {
         double nnegpermutations;
-        double accuracy;
+        double error;
         int rank;
         } calc;
       double tp,fp,tn,fn;
-      double partaccuracy[N_MDR_PARTS];
+      double parterror[N_MDR_PARTS];
 
       SummedData();
       void clearPartData();
-      void addAccuracy(int idxpart);
+      void addError(int idxpart);
       double getPvaluePermutations(int npermutations);
       static bool testBestCombination(Calculated calc1, Calculated calc2);
       #ifndef SERIAL
@@ -75,8 +75,8 @@ namespace MDR {
     private:
       unsigned char **permpheno,*parts;
       int markercombo[MAX_MARKER_COMBINATIONS];
-      int mdrpartres[N_MDR_PARTS][PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS];
-      int mdrsumres[PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS];
+      short mdrpartres[N_MDR_PARTS][PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS];
+      short mdrsumres[PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS];
 
       void populateMDRParts();
       void randomShuffle(unsigned char *data);
@@ -94,7 +94,7 @@ namespace MDR {
       unsigned char **gendata,*phenotype;
       double cutpvalue;
       char **marker;
-      Result maxaccuracy;
+      Result minerror;
 
       Analysis();
       void setInitialArrays();
