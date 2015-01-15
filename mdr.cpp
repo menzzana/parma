@@ -63,10 +63,12 @@ void Result::setBestCombination(Result result) {
   }
 //---------------------------------------------------------------------------
 void Result::printHeader(bool ispermutation) {
-  cout << "Markers"<< delimiter << "ClassificationError"<< delimiter << "PredictionError"<< delimiter;
-  if (ispermutation)
-    cout << "ClassificationError p-value"<< delimiter << "PredictionError p-value"<< delimiter;
-  cout << "MinError" << endl;
+  for (int i1=0; i1<HEADER_LENGTH; i1++) {
+    if (!ispermutation && (i1==3 || i1==4))
+      continue;
+    cout << HEADER[i1]<<delimiter;
+    }
+  cout << endl;
   }
 //---------------------------------------------------------------------------
 void Result::print(char **marker,int npermutations, bool lowest) {
@@ -92,9 +94,11 @@ Analysis::Analysis() {
   marker=NULL;
   permpheno=NULL;
   parts=NULL;
+  allelegroup=NULL;
   param.npermutations=0;
   param.maxcombinations=MAX_MARKER_COMBINATIONS;
   param.mincombinations=MIN_MARKER_COMBINATIONS;
+  groupn=0;
   param.nmarkers=0;
   param.nindividuals=0;
   param.randomseed=0;
@@ -111,6 +115,14 @@ void Analysis::createDataBuffers(bool initthisrank) {
   if (!initthisrank)
     return;
   phenotype=new unsigned char[param.nindividuals];
+  parts=new unsigned char[param.nindividuals];
+  allelegroup=new short[param.nindividuals];
+  mdrsumres[CONTROL]=new short[param.nindividuals];
+  mdrsumres[CASE]=new short[param.nindividuals];
+  for (int i1=0; i1<N_MDR_PARTS; i1++) {
+    mdrpartres[CONTROL][i1]=new short[param.nindividuals];
+    mdrpartres[CASE][i1]=new short[param.nindividuals];
+    }
   gendata=new unsigned char*[param.nindividuals];
   gendata[0]=new unsigned char[param.nindividuals*param.nmarkers];
   for (int i1=1; i1<param.nindividuals; i1++)
@@ -122,8 +134,7 @@ void Analysis::createDataBuffers(bool initthisrank) {
     marker[i1]=&marker[0][i1*global::MAX_LENGTH_MARKER_NAME];
   }
 //---------------------------------------------------------------------------
-void Analysis::setInitialArrays() {
-  parts=new unsigned char[param.nindividuals];
+void Analysis::initializePartPermutationArrays() {
   populateMDRParts();
   randomShuffle(parts);
   if (param.npermutations==0)
@@ -151,8 +162,21 @@ void Analysis::randomShuffle(unsigned char *data) {
     swap(data[i1],data[(int)(CALC::ran1()*param.nindividuals)]);
   }
 //---------------------------------------------------------------------------
-int Analysis::getAlleleCombinations(int combinations) {
-  return pow(ALLELE_COMBINATIONS,combinations);
+void Analysis::removeNonGenotypeIndividuals() {
+  int idxindividual,idxnewindividual,idxmarker;
+
+  for (idxindividual=idxnewindividual=0; idxindividual<param.nindividuals; idxindividual++) {
+    phenotype[idxnewindividual]=phenotype[idxindividual];
+    for (idxmarker=0; idxmarker<param.nmarkers; idxmarker++) {
+      if (gendata[idxindividual][idxmarker]==255)
+        break;
+      gendata[idxnewindividual][idxmarker]=gendata[idxindividual][idxmarker];
+      }
+    if (idxmarker==param.nmarkers)
+      idxnewindividual++;
+    }
+  cerr << "Removed " << param.nindividuals-idxnewindividual << " individuals" << endl;
+  param.nindividuals=idxnewindividual;
   }
 //---------------------------------------------------------------------------
 void Analysis::checkMaxCombination() {
@@ -171,77 +195,74 @@ void Analysis::setMarkerCombination(unsigned long long cidx, int combinations) {
     }
   }
 //---------------------------------------------------------------------------
-void Analysis::clearMDRResults(int combinations) {
-  int vlength;
-
-  vlength=getAlleleCombinations(combinations);
-  memset(mdrsumres[CONTROL],0,sizeof(short)*vlength);
-  memset(mdrsumres[CASE],0,sizeof(short)*vlength);
+void Analysis::clearMDRResults() {
+  memset(mdrsumres[CONTROL],0,sizeof(short)*groupn);
+  memset(mdrsumres[CASE],0,sizeof(short)*groupn);
   for (int i1=0; i1<N_MDR_PARTS; i1++) {
-    memset(mdrpartres[i1][CONTROL],0,sizeof(short)*vlength);
-    memset(mdrpartres[i1][CASE],0,sizeof(short)*vlength);
+    memset(mdrpartres[CONTROL][i1],0,sizeof(short)*groupn);
+    memset(mdrpartres[CASE][i1],0,sizeof(short)*groupn);
     }
   }
 //---------------------------------------------------------------------------
-void Analysis::removeNonGenotypeIndividuals() {
-  int idxindividual,idxnewindividual,idxmarker;
+void Analysis::setAlleleGroups(int combinations) {
+  int idxind1,idxind2,idxmark;
 
-  for (idxindividual=idxnewindividual=0; idxindividual<param.nindividuals; idxindividual++) {
-    phenotype[idxnewindividual]=phenotype[idxindividual];
-    for (idxmarker=0; idxmarker<param.nmarkers; idxmarker++) {
-      if (gendata[idxindividual][idxmarker]==255)
-        break;
-      gendata[idxnewindividual][idxmarker]=gendata[idxindividual][idxmarker];
+  memset(allelegroup,0,sizeof(short)*param.nindividuals);
+  groupn=1;
+  for (idxind1=0; idxind1<param.nindividuals; idxind1++) {
+    if (allelegroup[idxind1]>0)
+      continue;
+    allelegroup[idxind1]=groupn;
+    groupn++;
+    for (idxind2=idxind1+1; idxind2<param.nindividuals; idxind2++) {
+      for (idxmark=0; idxmark<combinations; idxmark++)
+        if (gendata[idxind1][markercombo[idxmark]]!=gendata[idxind2][markercombo[idxmark]])
+          break;
+      if (idxmark==combinations)
+        allelegroup[idxind2]=allelegroup[idxind1];
       }
-    if (idxmarker==param.nmarkers)
-      idxnewindividual++;
     }
-  cerr << "Removed " << param.nindividuals-idxnewindividual << " individuals" << endl;
-  param.nindividuals=idxnewindividual;
   }
 //---------------------------------------------------------------------------
 Result Analysis::analyseAlleles(unsigned char *vpheno, int combinations, Result *original) {
   Result accres;
-  int idxmark,idxind,idxres,idxpart;
-  int traincase,traincontrol;
+   int idxind,idxgroup,idxpart;
+   int traincase,traincontrol;
 
-  clearMDRResults(combinations);
-  for (idxind=0; idxind<param.nindividuals; idxind++) {
-    idxres=0;
-    for(idxmark=0; idxmark<combinations; idxmark++)
-      idxres+=getAlleleCombinations(idxmark)*gendata[idxind][markercombo[idxmark]];
-    mdrpartres[(int)parts[idxind]][(int)vpheno[idxind]][idxres]++;
-    mdrsumres[(int)vpheno[idxind]][idxres]++;
-    }
-  accres=Result();
-  for (idxpart=0; idxpart<N_MDR_PARTS; idxpart++) {
-    accres.train.clearPartData();
-    accres.test.clearPartData();
-    for(idxres=0; idxres<getAlleleCombinations(combinations); idxres++) {
-      traincase=mdrsumres[CASE][idxres]-mdrpartres[idxpart][CASE][idxres];
-      traincontrol=mdrsumres[CONTROL][idxres]-mdrpartres[idxpart][CONTROL][idxres];
-      if (traincase<traincontrol) {
-        accres.train.fp+=traincase;
-        accres.train.tn+=traincontrol;
-        accres.test.fp+=mdrpartres[idxpart][CASE][idxres];
-        accres.test.tn+=mdrpartres[idxpart][CONTROL][idxres];
-        }
-      else {
-        accres.train.tp+=traincase;
-        accres.train.fn+=traincontrol;
-        accres.test.tp+=mdrpartres[idxpart][CASE][idxres];
-        accres.test.fn+=mdrpartres[idxpart][CONTROL][idxres];
-        }
-      }
-    accres.train.addError(idxpart);
-    accres.test.addError(idxpart);
-    if (original!=NULL) {
-      if (accres.train.parterror[idxpart]>original->train.parterror[idxpart])
-        original->train.calc.nnegpermutations++;
-      if (accres.test.parterror[idxpart]>original->test.parterror[idxpart])
-        original->test.calc.nnegpermutations++;
-      }
-    }
+   clearMDRResults();
+   for (idxind=0; idxind<param.nindividuals; idxind++) {
+     mdrpartres[(int)vpheno[idxind]][(int)parts[idxind]][(int)allelegroup[idxind]]++;
+     mdrsumres[(int)vpheno[idxind]][(int)allelegroup[idxind]]++;
+     }
+   accres=Result();
+   for (idxpart=0; idxpart<N_MDR_PARTS; idxpart++) {
+     accres.train.clearPartData();
+     accres.test.clearPartData();
+     for(idxgroup=0; idxgroup<groupn; idxgroup++) {
+       traincase=mdrsumres[CASE][idxgroup]-mdrpartres[CASE][idxpart][idxgroup];
+       traincontrol=mdrsumres[CONTROL][idxgroup]-mdrpartres[CONTROL][idxpart][idxgroup];
+       if (traincase<traincontrol) {
+         accres.train.fp+=traincase;
+         accres.train.tn+=traincontrol;
+         accres.test.fp+=mdrpartres[CASE][idxpart][idxgroup];
+         accres.test.tn+=mdrpartres[CONTROL][idxpart][idxgroup];
+         }
+       else {
+         accres.train.tp+=traincase;
+         accres.train.fn+=traincontrol;
+         accres.test.tp+=mdrpartres[CASE][idxpart][idxgroup];
+         accres.test.fn+=mdrpartres[CONTROL][idxpart][idxgroup];
+         }
+       }
+     accres.train.addError(idxpart);
+     accres.test.addError(idxpart);
+     if (original!=NULL) {
+       if (accres.train.parterror[idxpart]>original->train.parterror[idxpart])
+         original->train.calc.nnegpermutations++;
+       if (accres.test.parterror[idxpart]>original->test.parterror[idxpart])
+         original->test.calc.nnegpermutations++;
+       }
+     }
   if (original==NULL) {
     memcpy(accres.markercombo,markercombo,sizeof(int)*combinations);
     accres.combinations=combinations;
@@ -260,6 +281,7 @@ bool Analysis::Run(int rank, int mpisize, int combination) {
     maxmarkercombos=CALC::C(param.nmarkers,combination);
     for (cidx=rank; cidx<maxmarkercombos; cidx+=mpisize) {
       setMarkerCombination(cidx,combination);
+      setAlleleGroups(combination);
       origerror=analyseAlleles(phenotype,combination,NULL);
       for (int i1=0; i1<param.npermutations; i1++)
         analyseAlleles(permpheno[i1],combination,&origerror);
@@ -280,22 +302,19 @@ void Analysis::printBestResult() {
   }
 //---------------------------------------------------------------------------
 void Analysis::printParameters() {
-  clog << "Markers: " << param.nmarkers << endl;
-  clog << "Individuals: " << param.nindividuals << endl;
-  if (param.npermutations==0)
-    clog << "Permutations: None" << endl;
-  else
-    clog << "Permutations: " << param.npermutations << endl;
-  clog << "Min combinations: " << param.mincombinations << endl;
-  clog << "Max combinations: " << param.maxcombinations << endl;
+  clog << PARAMETERS[0] << param.nmarkers << endl;
+  clog << PARAMETERS[1] << param.nindividuals << endl;
+  clog << PARAMETERS[2] << param.npermutations << endl;
+  clog << PARAMETERS[3] << param.mincombinations << endl;
+  clog << PARAMETERS[4] << param.maxcombinations << endl;
   if (param.cutpvalue==NO_CUTOFF)
-    clog << "Max p-value: Best value only" << endl;
+    clog << PARAMETERS[6] << endl;
   else
-    clog << "Max p-value: " << param.cutpvalue << endl;
+    clog << PARAMETERS[5] << endl;
   if (param.randomseed==0)
-    clog << "Seed: Std" << endl;
+    clog << PARAMETERS[8] << endl;
   else
-    clog << "Seed: " << param.randomseed << endl;
+    clog << PARAMETERS[7] << param.randomseed << endl;
   }
 //---------------------------------------------------------------------------
 Analysis::~Analysis() {
@@ -303,8 +322,15 @@ Analysis::~Analysis() {
     delete permpheno[i1];
   delete permpheno;
   delete parts;
+  delete allelegroup;
   delete phenotype;
   delete[] marker;
   delete[] gendata;
+  delete mdrsumres[CONTROL];
+  delete mdrsumres[CASE];
+  for (int i1=0; i1<N_MDR_PARTS; i1++) {
+    delete mdrpartres[CONTROL][i1];
+    delete mdrpartres[CASE][i1];
+    }
   }
 //---------------------------------------------------------------------------

@@ -13,6 +13,9 @@
 #ifndef SERIAL
   #include "mpi.h"
 #endif
+
+#define THROW_ERROR(text) throw runtime_error(text)
+#define THROW_ERROR_VALUE(text,value) throw runtime_error(string(text)+value)
 //------------------------------------------------------------------------------
 // global constants
 //------------------------------------------------------------------------------
@@ -60,6 +63,20 @@ namespace CALC {
   void sran1(long rseed);
   double ran1();
   unsigned long long C(unsigned long long n, unsigned long long k);
+  }
+//------------------------------------------------------------------------------
+namespace ERRORTEXT {
+  const char NO_MPI[]="Cannot init MPI";
+  const char TYPE_README[]="See README for a list of options.";
+  const char NO_GENOTYPE_DATA_FORMAT[]="Genotype data format not set";
+  const char NO_MARKERS[]="Cannot load markers from file: ";
+  const char NO_FILE_LOAD[]="Cannot load data file: ";
+  const char NO_PARAMETER_SEND[]="Cannot broadcast parameters";
+  const char NO_PHENOTYPE_SEND[]="Cannot broadcast phenotype data";
+  const char NO_GENETIC_DATA_SEND[]="Cannot broadcast genetic data";
+  const char NO_MARKER_SEND[]="Cannot broadcast marker names";
+  const char NO_DATA_ANALYSED[]="Cannot analyse data";
+  const char NO_REDUCTION[]="Cannot reduce max results from all processes";
   }
 //------------------------------------------------------------------------------
 #endif // GLOBAL_H

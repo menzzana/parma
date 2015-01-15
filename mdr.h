@@ -29,14 +29,31 @@ namespace MDR {
   static const unsigned char HOMOZYGOTE2=2;
   static const unsigned char CONTROL=0;
   static const unsigned char CASE=1;
-  static const int MAX_MARKER_COMBINATIONS=13;
+  static const int PHENOTYPE_COMBINATIONS=2;
+  static const int MAX_MARKER_COMBINATIONS=16;
   static const int MIN_MARKER_COMBINATIONS=1;
   static const int N_MDR_PARTS=10;
-  static const int PHENOTYPE_COMBINATIONS=2;
-  static const int ALLELE_COMBINATIONS=3;
-  // LIST_ALLELE_MARKER_COMBINATIONS=ALLELE_COMBINATIONS^MAX_MARKER_COMBINATIONS
-  static const int LIST_ALLELE_MARKER_COMBINATIONS=2E6;
   static const double NO_CUTOFF=-1;
+  static const char *const HEADER[]={
+    "Markers",
+    "ClassificationError",
+    "PredictionError",
+    "ClassificationError p-value",
+    "PredictionError p-value",
+    "MinError"
+    };
+  static const int HEADER_LENGTH=6;
+  static const char *const PARAMETERS[]={
+    "Markers: ",
+    "Individuals: ",
+    "Permutations: ",
+    "Min combinations: ",
+    "Max combinations: ",
+    "Max p-value: ",
+    "Max p-value: Best value only",
+    "Seed: ",
+    "Seed: Standard"
+    };
   //------------------------------------------------------------------------------
   class SummedData {
     public:
@@ -75,14 +92,15 @@ namespace MDR {
     private:
       unsigned char **permpheno,*parts;
       int markercombo[MAX_MARKER_COMBINATIONS];
-      short mdrpartres[N_MDR_PARTS][PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS];
-      short mdrsumres[PHENOTYPE_COMBINATIONS][LIST_ALLELE_MARKER_COMBINATIONS];
-
+      short *allelegroup;
+      short *mdrpartres[PHENOTYPE_COMBINATIONS][N_MDR_PARTS];
+      short *mdrsumres[PHENOTYPE_COMBINATIONS];
+      int groupn;
       void populateMDRParts();
       void randomShuffle(unsigned char *data);
-      int getAlleleCombinations(int combinations);
       void setMarkerCombination(unsigned long long cidx, int combinations);
-      void clearMDRResults(int combinations);
+      void clearMDRResults();
+      void setAlleleGroups(int combinations);
       Result analyseAlleles(unsigned char *vpheno, int combinations, Result *original);
 
     public:
@@ -97,7 +115,7 @@ namespace MDR {
       Result minerror;
 
       Analysis();
-      void setInitialArrays();
+      void initializePartPermutationArrays();
       void createMasterDataBuffers(int nmarker, int nindividual);
       void createDataBuffers(bool initthisrank);
       void checkMaxCombination();

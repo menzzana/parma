@@ -34,6 +34,7 @@ static struct option long_options[]={
   {"cutoffpvalue",required_argument,0,'u'},
   {0,0,0,0}
   };
+static const char option_values[]="f:p:m:s:d:a:i:u:";
 Loader *mydata;
 MDR::Analysis *myanalysis;
 //------------------------------------------------------------------------------
@@ -54,7 +55,7 @@ int main(int argc, char **argv) {
   try {
     #ifndef SERIAL
       if (MPI_Init(&argc,&argv)!=MPI_SUCCESS)
-        throw runtime_error("Cannot init MPI");
+        THROW_ERROR(ERRORTEXT::NO_MPI);
       MPI_Comm_rank(MPI_COMM_WORLD,&mpirank);
       MPI_Comm_size(MPI_COMM_WORLD,&mpisize);
       MPI_Type_create_struct(global::LENGTH_2DOUBLE_INT,global::BLOCK_2DOUBLE_INT,global::DISP_2DOUBLE_INT,
@@ -73,7 +74,7 @@ int main(int argc, char **argv) {
     markerfilename="";
     if (mpirank==global::MPIROOT) {
       printVersion();
-      while ((optionvalue=getopt_long_only(argc,argv,"f:p:u:a:i:m:s:d:",long_options,&optionindex))!=global::END_OF_OPTIONS)
+      while ((optionvalue=getopt_long_only(argc,argv,option_values,long_options,&optionindex))!=global::END_OF_OPTIONS)
         switch (optionvalue) {
           case 'f':
             filename=optarg;
@@ -107,45 +108,45 @@ int main(int argc, char **argv) {
               }
             break;
           default:
-            throw runtime_error("See README for a list of options.");
+            THROW_ERROR(ERRORTEXT::TYPE_README);
           }
       if (mydata==NULL)
-        throw runtime_error("Genotype data format not set");
+        THROW_ERROR(ERRORTEXT::NO_GENOTYPE_DATA_FORMAT);
       if (markerfilename.length()>0)
         if (!mydata->loadSelectedMarkers(markerfilename))
-          throw runtime_error("Cannot load markers from file: "+markerfilename);
+          THROW_ERROR_VALUE(ERRORTEXT::NO_MARKERS,markerfilename);
       if (!mydata->loadFile(filename, myanalysis))
-        throw runtime_error("Cannot load data file: "+filename);
+        THROW_ERROR_VALUE(ERRORTEXT::NO_FILE_LOAD,filename);
       myanalysis->checkMaxCombination();
       myanalysis->printParameters();
       MDR::Result::printHeader(myanalysis->param.npermutations>0);
       }
     #ifndef SERIAL
       if (MPI_Bcast(&myanalysis->param,1,MPI_5INT_LONG_DOUBLE,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
-        throw runtime_error("Cannot broadcast parameters");
+        THROW_ERROR(ERRORTEXT::NO_PARAMETER_SEND);
     #endif
     CALC::sran1(myanalysis->param.randomseed);
     myanalysis->createDataBuffers(mpirank!=global::MPIROOT);
     #ifndef SERIAL
       if (MPI_Bcast(&myanalysis->phenotype[0],myanalysis->param.nindividuals,
                     MPI_UNSIGNED_CHAR,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
-        throw runtime_error("Cannot broadcast phenotype vector");
+        THROW_ERROR(ERRORTEXT::NO_PHENOTYPE_SEND);
       if (MPI_Bcast(&myanalysis->gendata[0][0],myanalysis->param.nmarkers*myanalysis->param.nindividuals,
                     MPI_UNSIGNED_CHAR,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
-        throw runtime_error("Cannot broadcast genetic data");
+        THROW_ERROR(ERRORTEXT::NO_GENETIC_DATA_SEND);
       if (MPI_Bcast(&myanalysis->marker[0][0],myanalysis->param.nmarkers*global::MAX_LENGTH_MARKER_NAME,
                     MPI_CHAR,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
-        throw runtime_error("Cannot broadcast marker names");
+        THROW_ERROR(ERRORTEXT::NO_MARKER_SEND);
     #endif
-    myanalysis->setInitialArrays();
+    myanalysis->initializePartPermutationArrays();
     for (int ncombo=myanalysis->param.mincombinations; ncombo<=myanalysis->param.maxcombinations; ncombo++) {
       if (!myanalysis->Run(mpirank,mpisize,ncombo))
-        throw runtime_error("Cannot analyse data");
+        THROW_ERROR(ERRORTEXT::NO_DATA_ANALYSED);
       myanalysis->minerror.test.calc.rank=mpirank;
       #ifndef SERIAL
         if (MPI_Allreduce(&myanalysis->minerror.test.calc,&maxresult,1,
                           MPI_2DOUBLE_INT,MPI_BESTCOMBINATION,MPI_COMM_WORLD)!=MPI_SUCCESS)
-          throw runtime_error("Cannot reduce max results from all processes");
+          THROW_ERROR(ERRORTEXT::NO_REDUCTION);
       #endif
       if (maxresult.rank==mpirank)
         myanalysis->printBestResult();

@@ -30,8 +30,6 @@ int Loader::getIndex(vector <string> myvec, string searchstring) {
     if (searchstring.compare(*i1)==0)
       return i2;
   return -1;
-  //i1=find(myvec.begin(),myvec.end(),searchstring);
-  //return (i1==myvec.end()?-1:i1-myvec.begin());
   }
 //---------------------------------------------------------------------------
 void Loader::splitDataString(string fstr, string *data) {
