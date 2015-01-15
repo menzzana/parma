@@ -44,12 +44,17 @@ double CALC::ran1() {
 unsigned long long CALC::C(unsigned long long n, unsigned long long k) {
   unsigned long long d,r=1;
 
-  if (k>n)
-    return 0;
-  for (d=1; d<=k; d++) {
-    r*=n--;
-    r/=d;
+  try {
+    if (k>n)
+      return 0;
+    for (d=1; d<=k; d++) {
+      r*=n--;
+      r/=d;
+      }
+    return r;
     }
-  return r;
+  catch(...) {
+    return 0;
+    }
   }
 //---------------------------------------------------------------------------

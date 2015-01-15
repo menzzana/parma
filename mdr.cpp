@@ -279,6 +279,8 @@ bool Analysis::Run(int rank, int mpisize, int combination) {
   try {
     minerror=Result();
     maxmarkercombos=CALC::C(param.nmarkers,combination);
+    if (maxmarkercombos==0)
+      throw runtime_error("Max Combination overflow");
     for (cidx=rank; cidx<maxmarkercombos; cidx+=mpisize) {
       setMarkerCombination(cidx,combination);
       setAlleleGroups(combination);

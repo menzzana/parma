@@ -30,8 +30,8 @@ namespace MDR {
   static const unsigned char CONTROL=0;
   static const unsigned char CASE=1;
   static const int PHENOTYPE_COMBINATIONS=2;
-  static const int MAX_MARKER_COMBINATIONS=16;
   static const int MIN_MARKER_COMBINATIONS=1;
+  static const int MAX_MARKER_COMBINATIONS=200;
   static const int N_MDR_PARTS=10;
   static const double NO_CUTOFF=-1;
   static const char *const HEADER[]={
