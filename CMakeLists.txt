@@ -19,7 +19,7 @@ configure_file( version_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/version_config.h
 # Uncomment the find of MPI to compile and run parma serially
 ###############################################################################
 
-find_package(MPI)
+#find_package(MPI)
 if(MPI_FOUND)
   message(STATUS "Package MPI found.")
 else(MPI_FOUND)

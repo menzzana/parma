@@ -19,20 +19,26 @@ class Loader {
     static const int SPDB=2;              // Data format DB schizophrenia class
     static const int BED=3;               // Data format for BED plink files
     static const int MAX_DATA_COLUMNS=5;
+    int nmarkers,nindividuals;
     vector <string> selmarker;
+    unsigned char **gendata,*phenotype;
+    char **marker;
 
     Loader();
     bool loadSelectedMarkers(string filename);
     int getIndex(vector <string> myvec, string searchstring);
     int getIndex(vector <char[30]> myvec, string searchstring);
     void splitDataString(string fstr,string *data);
-    virtual bool loadFile(string filename, MDR::Analysis *analysis)=0;
+    void createDataBuffers();
+    int removeNonGenotypeIndividuals();
+    void copy(MDR::Analysis *analysis);
+    virtual bool loadFile(string filename)=0;
     ~Loader();
   };
 //------------------------------------------------------------------------------
 class ExampleLoader : public Loader {
   public:
-    bool loadFile(string filename, MDR::Analysis *analysis);
+    bool loadFile(string filename);
   };
 //------------------------------------------------------------------------------
 class SPLoader : public Loader {
@@ -44,7 +50,7 @@ class SPLoader : public Loader {
     static const int SPALLELE1=3;
     static const int SPALLELE2=4;
 
-    bool loadFile(string filename, MDR::Analysis *analysis);
+    bool loadFile(string filename);
   };
 //------------------------------------------------------------------------------
 class MarkerList {

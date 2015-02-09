@@ -115,8 +115,10 @@ int main(int argc, char **argv) {
       if (markerfilename.length()>0)
         if (!mydata->loadSelectedMarkers(markerfilename))
           THROW_ERROR_VALUE(ERRORTEXT::NO_MARKERS,markerfilename);
-      if (!mydata->loadFile(filename, myanalysis))
+      if (!mydata->loadFile(filename))
         THROW_ERROR_VALUE(ERRORTEXT::NO_FILE_LOAD,filename);
+      myanalysis->param.nindividuals=mydata->nindividuals;
+      myanalysis->param.nmarkers=mydata->nmarkers;
       myanalysis->checkMaxCombination();
       myanalysis->printParameters();
       MDR::Result::printHeader(myanalysis->param.npermutations>0);
@@ -126,9 +128,11 @@ int main(int argc, char **argv) {
         THROW_ERROR(ERRORTEXT::NO_PARAMETER_SEND);
     #endif
     CALC::sran1(myanalysis->param.randomseed);
-    myanalysis->createDataBuffers(mpirank!=global::MPIROOT);
+    myanalysis->createDataBuffers();
+    if (mpirank==global::MPIROOT)
+      mydata->copy(myanalysis);
     #ifndef SERIAL
-      if (MPI_Bcast(&myanalysis->phenotype[0],myanalysis->param.nindividuals,
+      if (MPI_Bcast(&myanalysis->phenotype[0][0],myanalysis->param.nindividuals,
                     MPI_UNSIGNED_CHAR,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
         THROW_ERROR(ERRORTEXT::NO_PHENOTYPE_SEND);
       if (MPI_Bcast(&myanalysis->gendata[0][0],myanalysis->param.nmarkers*myanalysis->param.nindividuals,

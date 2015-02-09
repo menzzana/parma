@@ -34,6 +34,7 @@ namespace MDR {
   static const int MAX_MARKER_COMBINATIONS=200;
   static const int N_MDR_PARTS=10;
   static const double NO_CUTOFF=-1;
+  static const double MAX_ERROR=1;
   static const char *const HEADER[]={
     "Markers",
     "ClassificationError",
@@ -58,16 +59,16 @@ namespace MDR {
   class SummedData {
     public:
       struct Calculated {
-        double nnegpermutations;
+        double pospermutations;
         double error;
         int rank;
         } calc;
       double tp,fp,tn,fn;
-      double parterror[N_MDR_PARTS];
+      double parterror,originalparterror;
 
       SummedData();
       void clearPartData();
-      void addError(int idxpart);
+      void calculateError(int idxperm);
       double getPvaluePermutations(int npermutations);
       static bool testBestCombination(Calculated calc1, Calculated calc2);
       #ifndef SERIAL
@@ -90,18 +91,16 @@ namespace MDR {
 //------------------------------------------------------------------------------
   class Analysis {
     private:
-      unsigned char **permpheno,*parts;
+      unsigned char *parts;
       int markercombo[MAX_MARKER_COMBINATIONS];
       short *allelegroup;
-      short *mdrpartres[PHENOTYPE_COMBINATIONS][N_MDR_PARTS];
-      short *mdrsumres[PHENOTYPE_COMBINATIONS];
-      int groupn;
+      short **mdrpartres[N_MDR_PARTS][PHENOTYPE_COMBINATIONS];
+      short **mdrsumres[PHENOTYPE_COMBINATIONS];
       void populateMDRParts();
       void randomShuffle(unsigned char *data);
       void setMarkerCombination(unsigned long long cidx, int combinations);
-      void clearMDRResults();
-      void setAlleleGroups(int combinations);
-      Result analyseAlleles(unsigned char *vpheno, int combinations, Result *original);
+      void clearMDRResults(int groupn) ;
+      Result analyseAlleles(int combinations);
 
     public:
       struct Param {
@@ -109,17 +108,15 @@ namespace MDR {
         long randomseed;
         double cutpvalue;
         } param;
-      unsigned char **gendata,*phenotype;
+      unsigned char **gendata,**phenotype;
       double cutpvalue;
       char **marker;
       Result minerror;
 
       Analysis();
       void initializePartPermutationArrays();
-      void createMasterDataBuffers(int nmarker, int nindividual);
-      void createDataBuffers(bool initthisrank);
+      void createDataBuffers();
       void checkMaxCombination();
-      void removeNonGenotypeIndividuals();
       bool Run(int rank, int mpisize, int combination);
       void printBestResult();
       void printParameters();
