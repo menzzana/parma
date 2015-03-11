@@ -311,7 +311,7 @@ void Analysis::printParameters() {
   if (param.cutpvalue==NO_CUTOFF)
     clog << PARAMETERS[6] << endl;
   else
-    clog << PARAMETERS[5] << endl;
+    clog << PARAMETERS[5] << param.cutpvalue << endl;
   if (param.randomseed==0)
     clog << PARAMETERS[8] << endl;
   else
