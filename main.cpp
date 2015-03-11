@@ -32,9 +32,10 @@ static struct option long_options[]={
   {"maxcombinations",required_argument,0,'a'},
   {"mincombinations",required_argument,0,'i'},
   {"cutoffpvalue",required_argument,0,'u'},
+  {"onlypermuteone",no_argument,0,'o'},
   {0,0,0,0}
   };
-static const char option_values[]="f:p:m:s:d:a:i:u:";
+static const char option_values[]="f:p:m:s:d:a:i:u:o";
 Loader *mydata;
 MDR::Analysis *myanalysis;
 //------------------------------------------------------------------------------
@@ -48,7 +49,7 @@ int main(int argc, char **argv) {
   int optionvalue,mpirank,mpisize,optionindex,exitvalue;
   MDR::SummedData::Calculated maxresult;
   #ifndef SERIAL
-    MPI_Datatype MPI_2DOUBLE_INT,MPI_5INT_LONG_DOUBLE;
+    MPI_Datatype MPI_2DOUBLE_INT,MPI_5INT_LONG_DOUBLE_BOOL;
     MPI_Op MPI_BESTCOMBINATION;
   #endif
 
@@ -61,9 +62,9 @@ int main(int argc, char **argv) {
       MPI_Type_create_struct(global::LENGTH_2DOUBLE_INT,global::BLOCK_2DOUBLE_INT,global::DISP_2DOUBLE_INT,
                              global::TYPE_2DOUBLE_INT,&MPI_2DOUBLE_INT);
       MPI_Type_commit(&MPI_2DOUBLE_INT);
-      MPI_Type_create_struct(global::LENGTH_5INT_LONG_DOUBLE,global::BLOCK_5INT_LONG_DOUBLE,
-                             global::DISP_5INT_LONG_DOUBLE,global::TYPE_5INT_LONG_DOUBLE,&MPI_5INT_LONG_DOUBLE);
-      MPI_Type_commit(&MPI_5INT_LONG_DOUBLE);
+      MPI_Type_create_struct(global::LENGTH_5INT_LONG_DOUBLE_BOOL,global::BLOCK_5INT_LONG_DOUBLE_BOOL,
+                             global::DISP_5INT_LONG_DOUBLE_BOOL,global::TYPE_5INT_LONG_DOUBLE_BOOL,&MPI_5INT_LONG_DOUBLE_BOOL);
+      MPI_Type_commit(&MPI_5INT_LONG_DOUBLE_BOOL);
       MPI_Op_create((MPI_User_function *)MDR::SummedData::procTestBestCombination, true, &MPI_BESTCOMBINATION);
     #else
       mpirank=global::MPIROOT;
@@ -107,6 +108,9 @@ int main(int argc, char **argv) {
                 break;
               }
             break;
+          case 'o':
+            myanalysis->param.onlypermuteone=true;
+            break;
           default:
             THROW_ERROR(ERRORTEXT::TYPE_README);
           }
@@ -119,19 +123,19 @@ int main(int argc, char **argv) {
         THROW_ERROR_VALUE(ERRORTEXT::NO_FILE_LOAD,filename);
       myanalysis->param.nindividuals=mydata->nindividuals;
       myanalysis->param.nmarkers=mydata->nmarkers;
-      myanalysis->checkMaxCombination();
+      myanalysis->checkParameters();
       myanalysis->printParameters();
       MDR::Result::printHeader(myanalysis->param.npermutations>0);
       }
     #ifndef SERIAL
-      if (MPI_Bcast(&myanalysis->param,1,MPI_5INT_LONG_DOUBLE,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
+      if (MPI_Bcast(&myanalysis->param,1,MPI_5INT_LONG_DOUBLE_BOOL,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
         THROW_ERROR(ERRORTEXT::NO_PARAMETER_SEND);
     #endif
     CALC::sran1(myanalysis->param.randomseed);
     myanalysis->createDataBuffers();
     if (mpirank==global::MPIROOT)
       mydata->copy(myanalysis);
-    #ifndef SERIAL
+      #ifndef SERIAL
       if (MPI_Bcast(&myanalysis->phenotype[0][0],myanalysis->param.nindividuals,
                     MPI_UNSIGNED_CHAR,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
         THROW_ERROR(ERRORTEXT::NO_PHENOTYPE_SEND);
@@ -141,7 +145,7 @@ int main(int argc, char **argv) {
       if (MPI_Bcast(&myanalysis->marker[0][0],myanalysis->param.nmarkers*global::MAX_LENGTH_MARKER_NAME,
                     MPI_CHAR,global::MPIROOT,MPI_COMM_WORLD)!=MPI_SUCCESS)
         THROW_ERROR(ERRORTEXT::NO_MARKER_SEND);
-    #endif
+      #endif
     myanalysis->initializePartPermutationArrays();
     for (int ncombo=myanalysis->param.mincombinations; ncombo<=myanalysis->param.maxcombinations; ncombo++) {
       if (!myanalysis->Run(mpirank,mpisize,ncombo))

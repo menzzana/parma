@@ -96,12 +96,12 @@ void Result::print(char **marker,int npermutations, bool lowest) {
   }
 //---------------------------------------------------------------------------
 Analysis::Analysis() {
-  cutpvalue=NO_CUTOFF;
   gendata=NULL;
   phenotype=NULL;
   marker=NULL;
   parts=NULL;
   allelegroup=NULL;
+  param.onlypermuteone=false;
   param.npermutations=0;
   param.maxcombinations=MAX_MARKER_COMBINATIONS;
   param.mincombinations=MIN_MARKER_COMBINATIONS;
@@ -174,8 +174,9 @@ void Analysis::randomShuffle(unsigned char *data) {
     swap(data[i1],data[(int)(CALC::ran1()*param.nindividuals)]);
   }
 //---------------------------------------------------------------------------
-void Analysis::checkMaxCombination() {
+void Analysis::checkParameters() {
   param.maxcombinations=min(param.maxcombinations,param.nmarkers);
+  param.onlypermuteone=param.onlypermuteone && param.cutpvalue==NO_CUTOFF;
   }
 //---------------------------------------------------------------------------
 void Analysis::setMarkerCombination(unsigned long long cidx, int combinations) {
@@ -204,12 +205,13 @@ void Analysis::clearMDRResults(int groupn) {
       }
   }
 //---------------------------------------------------------------------------
-Result Analysis::analyseAlleles(int combinations) {
+Result Analysis::analyseAlleles(int combinations,bool nopermutation) {
   Result accres;
   int idxind,idxgroup,idxmark,idxpart,idxperm;
-  int traincase,traincontrol;
+  int traincase,traincontrol,permutations;
   static int groupn=0;
 
+  permutations=nopermutation?0:param.npermutations;
   clearMDRResults(groupn);
   groupn=0;
   for (idxind=0; idxind<param.nindividuals; idxind++) {
@@ -224,14 +226,14 @@ Result Analysis::analyseAlleles(int combinations) {
       groupn++;
       allelegroup[idxgroup]=idxind;
       }
-    for (idxperm=0; idxperm<=param.npermutations; idxperm++) {
+    for (idxperm=0; idxperm<=permutations; idxperm++) {
       mdrpartres[(int)parts[idxind]][(int)phenotype[idxperm][idxind]][idxperm][idxgroup]++;
       mdrsumres[(int)phenotype[idxperm][idxind]][idxperm][idxgroup]++;
       }
     }
   accres=Result();
   for (idxpart=0; idxpart<N_MDR_PARTS; idxpart++) {
-    for (idxperm=0; idxperm<=param.npermutations; idxperm++) {
+    for (idxperm=0; idxperm<=permutations; idxperm++) {
       accres.train.clearPartData();
       accres.test.clearPartData();
       for(idxgroup=0; idxgroup<groupn; idxgroup++) {
@@ -274,10 +276,14 @@ bool Analysis::Run(int rank, int mpisize, int combination) {
       THROW_ERROR("Max Combination overflow");
     for (cidx=rank; cidx<maxmarkercombos; cidx+=mpisize) {
       setMarkerCombination(cidx,combination);
-      origerror=analyseAlleles(combination);
+      origerror=analyseAlleles(combination,param.onlypermuteone);
       if (origerror.test.getPvaluePermutations(param.npermutations)<=param.cutpvalue)
         origerror.print(marker,param.npermutations,false);
       minerror.setBestCombination(origerror);
+      }
+    if (param.onlypermuteone) {
+      memcpy(markercombo,minerror.markercombo,sizeof(int)*combination);
+      minerror=analyseAlleles(combination,false);
       }
     return true;
     }
@@ -294,7 +300,12 @@ void Analysis::printBestResult() {
 void Analysis::printParameters() {
   clog << PARAMETERS[0] << param.nmarkers << endl;
   clog << PARAMETERS[1] << param.nindividuals << endl;
-  clog << PARAMETERS[2] << param.npermutations << endl;
+  clog << PARAMETERS[2];
+  if (param.onlypermuteone)
+    clog << PARAMETERS[9];
+  else
+    clog << param.npermutations;
+  clog << endl;
   clog << PARAMETERS[3] << param.mincombinations << endl;
   clog << PARAMETERS[4] << param.maxcombinations << endl;
   if (param.cutpvalue==NO_CUTOFF)

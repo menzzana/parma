@@ -73,6 +73,8 @@ OPTIONS
                            [value] 3 Plink BED format
 -u,cutoffpvalue [value]    Show only test pvalues below this limit.
                            Without this option only the best combinations will be shown
+-o,-onlypermuteone         Only performs permutation analysis with the loci combination
+                           with the min. prediction error.
 
 OUTPUT
 The software outputs results in a TAB delimited format.

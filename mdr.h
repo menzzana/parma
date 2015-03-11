@@ -53,7 +53,8 @@ namespace MDR {
     "Max p-value: ",
     "Max p-value: Best value only",
     "Seed: ",
-    "Seed: Standard"
+    "Seed: Standard",
+    "Only Best combination"
     };
   //------------------------------------------------------------------------------
   class SummedData {
@@ -100,23 +101,23 @@ namespace MDR {
       void randomShuffle(unsigned char *data);
       void setMarkerCombination(unsigned long long cidx, int combinations);
       void clearMDRResults(int groupn) ;
-      Result analyseAlleles(int combinations);
+      Result analyseAlleles(int combinations, bool nopermutations);
 
     public:
       struct Param {
         int npermutations,maxcombinations,mincombinations,nmarkers,nindividuals;
         long randomseed;
         double cutpvalue;
+        bool onlypermuteone;
         } param;
       unsigned char **gendata,**phenotype;
-      double cutpvalue;
       char **marker;
       Result minerror;
 
       Analysis();
       void initializePartPermutationArrays();
       void createDataBuffers();
-      void checkMaxCombination();
+      void checkParameters();
       bool Run(int rank, int mpisize, int combination);
       void printBestResult();
       void printParameters();
