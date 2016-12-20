@@ -21,32 +21,25 @@ see <http://www.gnu.org/licenses/>.
 #include "global.h"
 #include "mdr.h"
 #include "loader.h"
-#include <getopt.h>
+#include "messages.h"
+#include "boost/program_options.hpp"
 //------------------------------------------------------------------------------
-static struct option long_options[]={
-  {"file",required_argument,0,'f'},
-  {"permutations",required_argument,0,'p'},
-  {"markerfile",required_argument,0,'m'},
-  {"seed",required_argument,0,'s'},
-  {"datatype",required_argument,0,'d'},
-  {"maxcombinations",required_argument,0,'a'},
-  {"mincombinations",required_argument,0,'i'},
-  {"cutoffpvalue",required_argument,0,'u'},
-  {"onlypermuteone",no_argument,0,'o'},
-  {0,0,0,0}
-  };
-static const char option_values[]="f:p:m:s:d:a:i:u:o";
+namespace prgm_opt=boost::program_options;
+//------------------------------------------------------------------------------
 Loader *mydata;
 MDR::Analysis *myanalysis;
 //------------------------------------------------------------------------------
-void cleanUp() {
+void cleanUp(bool exitvalue) {
   delete mydata;
   delete myanalysis;
+  exit(exitvalue);
   }
 //------------------------------------------------------------------------------
 int main(int argc, char **argv) {
   string filename,markerfilename;
-  int optionvalue,mpirank,mpisize,optionindex,exitvalue;
+  int mpirank,mpisize,exitvalue;
+  prgm_opt::variables_map option_map;
+  prgm_opt::options_description options("Options");
   MDR::SummedData::Calculated maxresult;
   #ifndef SERIAL
     MPI_Datatype MPI_2DOUBLE_INT,MPI_5INT_LONG_DOUBLE_BOOL;
@@ -75,45 +68,50 @@ int main(int argc, char **argv) {
     markerfilename="";
     if (mpirank==global::MPIROOT) {
       printVersion();
-      while ((optionvalue=getopt_long_only(argc,argv,option_values,long_options,&optionindex))!=global::END_OF_OPTIONS)
-        switch (optionvalue) {
-          case 'f':
-            filename=optarg;
+      // Program options
+      prgm_opt::arg="[Value]";
+      options.add_options()
+        (CMDOPTIONS::HELP_OPTION[0],CMDOPTIONS::HELP_OPTION[2])
+        (CMDOPTIONS::FILE_OPTION[0],prgm_opt::value<string>()->required(),CMDOPTIONS::FILE_OPTION[2])
+        (CMDOPTIONS::MARKERFILE_OPTION[0],prgm_opt::value<string>()->required(),CMDOPTIONS::MARKERFILE_OPTION[2])
+        (CMDOPTIONS::PERMUTATION_OPTION[0],prgm_opt::value<int>()->required(),CMDOPTIONS::PERMUTATION_OPTION[2])
+        (CMDOPTIONS::MAXCOMBO_OPTION[0],prgm_opt::value<int>()->required(),CMDOPTIONS::MAXCOMBO_OPTION[2])
+        (CMDOPTIONS::MINCOMBO_OPTION[0],prgm_opt::value<int>()->required(),CMDOPTIONS::MINCOMBO_OPTION[2])
+        (CMDOPTIONS::DATATYPE_OPTION[0],prgm_opt::value<int>()->required(),CMDOPTIONS::DATATYPE_OPTION[2])
+        (CMDOPTIONS::CUTOFF_OPTION[0],prgm_opt::value<double>()->required(),CMDOPTIONS::CUTOFF_OPTION[2])
+        (CMDOPTIONS::PERMUTEONE_OPTION[0],CMDOPTIONS::PERMUTEONE_OPTION[2])
+        (CMDOPTIONS::GLOBALCOMBO_OPTION[0],prgm_opt::value<int>()->required(),CMDOPTIONS::GLOBALCOMBO_OPTION[2]);
+      if (option_map.count(CMDOPTIONS::HELP_OPTION[1])) {
+        cout << options;
+        cleanUp(EXIT_SUCCESS);
+        }
+      if (option_map.count(CMDOPTIONS::PERMUTATION_OPTION[1]))
+        myanalysis->param.npermutations=option_map[CMDOPTIONS::PERMUTATION_OPTION[1]].as<int>();
+      if (option_map.count(CMDOPTIONS::FILE_OPTION[1]))
+        filename=option_map[CMDOPTIONS::FILE_OPTION[1]].as<string>();
+      if (option_map.count(CMDOPTIONS::CUTOFF_OPTION[1]))
+        myanalysis->param.cutpvalue=option_map[CMDOPTIONS::CUTOFF_OPTION[1]].as<double>();
+      if (option_map.count(CMDOPTIONS::MAXCOMBO_OPTION[1]))
+        myanalysis->param.maxcombinations=option_map[CMDOPTIONS::MAXCOMBO_OPTION[1]].as<int>();
+      if (option_map.count(CMDOPTIONS::MINCOMBO_OPTION[1]))
+        myanalysis->param.mincombinations=option_map[CMDOPTIONS::MINCOMBO_OPTION[1]].as<int>();
+      if (option_map.count(CMDOPTIONS::MARKERFILE_OPTION[1]))
+        markerfilename=option_map[CMDOPTIONS::MARKERFILE_OPTION[1]].as<string>();
+      if (option_map.count(CMDOPTIONS::SEED_OPTION[1]))
+        myanalysis->param.randomseed=-option_map[CMDOPTIONS::SEED_OPTION[1]].as<int>();
+      if (option_map.count(CMDOPTIONS::DATATYPE_OPTION[1]))
+        switch(option_map[CMDOPTIONS::DATATYPE_OPTION[1]].as<int>()) {
+          case Loader::STD:
+            mydata=new ExampleLoader();
             break;
-          case 'p':
-            myanalysis->param.npermutations=atoi(optarg);
+          case Loader::SPDB:
+            mydata=new SPLoader();
             break;
-          case 'u':
-            myanalysis->param.cutpvalue=atof(optarg);
+          case Loader::BED:
             break;
-          case 'a':
-            myanalysis->param.maxcombinations=min(myanalysis->param.maxcombinations,atoi(optarg));
-            break;
-          case 'i':
-            myanalysis->param.mincombinations=min(myanalysis->param.maxcombinations,atoi(optarg));
-            break;
-          case 'm':
-            markerfilename=optarg;
-            break;
-          case 's':
-            myanalysis->param.randomseed=-atol(optarg);
-            break;
-          case 'd':
-            switch(atoi(optarg)) {
-              case Loader::STD:
-                mydata=new ExampleLoader();
-                break;
-              case Loader::SPDB:
-                mydata=new SPLoader();
-                break;
-              }
-            break;
-          case 'o':
-            myanalysis->param.onlypermuteone=true;
-            break;
-          default:
-            THROW_ERROR(ERRORTEXT::TYPE_README);
           }
+      if (option_map.count(CMDOPTIONS::PERMUTEONE_OPTION[1]))
+        myanalysis->param.onlypermuteone=true;
       if (mydata==NULL)
         THROW_ERROR(ERRORTEXT::NO_GENOTYPE_DATA_FORMAT);
       if (markerfilename.length()>0)
@@ -165,10 +163,9 @@ int main(int argc, char **argv) {
     cerr << e.what() << endl;
     exitvalue=EXIT_FAILURE;
     }
-  cleanUp();
   #ifndef SERIAL
     MPI_Finalize();
   #endif
-  exit(exitvalue);
+    cleanUp(exitvalue);
   }
 //------------------------------------------------------------------------------
